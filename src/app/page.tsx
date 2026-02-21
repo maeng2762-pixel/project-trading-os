@@ -26,8 +26,6 @@ import { NotificationService } from '@/lib/notification';
 import { Bell, BellOff } from 'lucide-react';
 import { TrustBadge } from '@/components/dashboard/TrustBadge';
 import { RuinGuard } from '@/components/analysis/RuinGuard'; // Optimized for later
-import { AutoPilotDashboard } from '@/components/autopilot/AutoPilotDashboard';
-import { AutoPilotConsentModal } from '@/components/autopilot/AutoPilotConsentModal';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
@@ -38,8 +36,6 @@ export default function Home() {
   const { isEnabled, toggleNotifications, lastNotification, setLastNotification } = useNotificationStore();
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [isConsentOpen, setIsConsentOpen] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
 
   // Notification Logic: Watch Analysis & Positions
   useEffect(() => {
@@ -95,83 +91,7 @@ export default function Home() {
 
   }, []);
 
-  // Live Balance Fetching
-  useEffect(() => {
-    if (!user || !apiConnected) return;
-
-    const fetchBalance = async () => {
-      try {
-        const idToken = await user.getIdToken();
-        const res = await fetch('/api/binance/balance', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`
-          },
-          body: JSON.stringify({ uid: user.uid }),
-        });
-        const data = await res.json();
-        if (res.ok && data.success && typeof data.liveBalance === 'number') {
-          setBalance(data.liveBalance);
-        } else if (res.status === 404 || res.status === 401) {
-          // If API keys are invalid or deleted
-          useTradingStore.getState().setApiConnected(false);
-        } else if (data.error) {
-          console.error("Binance API Error:", data.error);
-          alert(`⚠️ 바이낸스 API 오류가 감지되었습니다:\n\n${data.error}\n\n선물(Futures) 거래 권한이 비활성화되어 있거나 IP 제한 등의 문제일 수 있습니다. API 키 설정을 다시 확인해주세요.`);
-          useTradingStore.getState().setApiConnected(false); // Disconnect to prevent silent $0 balance
-        }
-      } catch (err) {
-        console.error("Failed to fetch live balance:", err);
-      }
-    };
-
-    fetchBalance();
-    const balanceInterval = setInterval(fetchBalance, 60000); // every 1 min
-    return () => clearInterval(balanceInterval);
-  }, [user, apiConnected, setBalance]);
-
   // ... (Admin code same) ...
-
-  const handleGlobalConsentAgree = async () => {
-    setIsConsentOpen(false);
-
-    const apiKey = prompt("바이낸스 API Key를 입력하세요:");
-    if (!apiKey) return;
-
-    const apiSecret = prompt("바이낸스 API Secret을 입력하세요:");
-    if (!apiSecret) return;
-
-    setIsConnecting(true);
-
-    try {
-      if (!user) throw new Error("로그인이 필요합니다.");
-      const idToken = await user.getIdToken();
-
-      const res = await fetch('/api/binance/keys', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ apiKey, apiSecret })
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        useTradingStore.getState().setApiConnected(true);
-        alert("✅ 바이낸스 API가 성공적으로 연결되었습니다!");
-        window.location.reload(); // Refresh to load live balance
-      } else {
-        throw new Error(data.error || 'API 연결에 실패했습니다.');
-      }
-    } catch (error: any) {
-      console.error("Global API 연동 에러:", error);
-      alert(error.message || "네트워크 오류가 발생했습니다.");
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   if (!mounted) return null;
 
@@ -184,11 +104,6 @@ export default function Home() {
     <main className="min-h-screen bg-zinc-950 text-white font-sans">
       <RiskGuard>
         <PostMortemModal />
-        <AutoPilotConsentModal
-          isOpen={isConsentOpen}
-          onClose={() => setIsConsentOpen(false)}
-          onAgree={handleGlobalConsentAgree}
-        />
         {/* Header */}
         <header className="border-b border-zinc-800 bg-zinc-950/80 p-3 backdrop-blur-md sticky top-0 z-50">
           <div className="container mx-auto">
@@ -243,18 +158,6 @@ export default function Home() {
 
               {/* Right Controls */}
               <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                {user && !apiConnected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2 sm:px-3 text-[10px] border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10 shrink-0"
-                    onClick={() => setIsConsentOpen(true)}
-                    disabled={isConnecting}
-                  >
-                    🚀 <span className="hidden sm:inline ml-1">Binance API </span>연결
-                  </Button>
-                )}
-
                 <div className="scale-90 sm:scale-100 flex items-center gap-1.5 sm:gap-3 origin-right">
                   <BeginnerGuide />
                   <ModeToggle />
@@ -289,14 +192,7 @@ export default function Home() {
           <DailyRitual />
           <TrustBadge />
 
-          {/* Guarded AutoPilot Dashboard (Shows Locked state for free users) */}
-          {user && (
-            <div className="mt-8 mb-8" id="autopilot-section">
-              <AutoPilotDashboard />
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative min-h-[80vh]">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative min-h-[80vh] mt-8">
             {/* ... Observer Overlay ... */}
             {!user && !loading && (
               <div className="absolute inset-0 z-20 backdrop-blur-md bg-zinc-950/60 flex flex-col items-center justify-start pt-[20vh] text-center">

@@ -20,7 +20,7 @@ import { AnalysisResult, AnalysisEngine } from '@/lib/analysis';
 import { PositionHandler } from './PositionHandler'; // Import
 
 export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }) => {
-    const { openPosition, balance, liveBalance, apiConnected, disciplineScore, positions, maxAllowedLeverage, consecutiveLosses } = useTradingStore();
+    const { openPosition, balance, positions, maxAllowedLeverage } = useTradingStore();
     const { t } = useLanguageStore();
     const [price, setPrice] = useState<number>(0);
     const [amount, setAmount] = useState<number>(100);
@@ -28,9 +28,8 @@ export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }
     const [leverage, setLeverage] = useState<number>(1);
     const [stopLoss, setStopLoss] = useState<number>(0);
     const [takeProfit, setTakeProfit] = useState<number>(0);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
     const [isPyramidEligible, setIsPyramidEligible] = useState(false);
-    const [isExecuting, setIsExecuting] = useState(false);
 
     // Check for Active Position
     // Check for Active Position - Just check if any position exists
@@ -40,12 +39,11 @@ export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }
     const probability = analysis?.score || 50;
 
     // Dynamic Sizing Logic
-    const effectiveBalance = apiConnected ? liveBalance : balance;
-    const recommendedMax = (effectiveBalance * 0.1) * (disciplineScore / 100);
+    const recommendedMax = (balance * 0.1) * (50 / 100); // disciplineScore removed, using static 50 for now
     const isOverSize = amount > recommendedMax;
 
     // v3.0 Circuit Breaker: Mental Constraint
-    const isMentalLow = disciplineScore < 60; // Wait, prompt said Mental < 60, disciplineScore is loosely Mental here? 
+    const isMentalLow = 50 < 60; // disciplineScore removed, using static 50 for now
     // Header says Mental is static 85. Discipline is dynamic. Prompt says "Mental Score < 60". 
     // I should probably check against Discipline Score for now as there's no dynamic Mental Score state.
     // Assuming Discipline Score acts as the Mental/Behavior score.
@@ -120,7 +118,7 @@ export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }
             // Should be handled by button disabled state too, but double check
             return;
         }
-        setIsModalOpen(true);
+        setIsReasonModalOpen(true);
     };
 
     // v3.0 AI Auto-Set Logic (Brain Button)
@@ -130,15 +128,13 @@ export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }
 
         const { currentMode } = useTradingStore.getState();
 
-        if (effectiveBalance <= 0) {
-            alert(apiConnected
-                ? "라이브 잔고가 0원이거나 불러오는 중입니다. 선물 지갑에 USDT가 있는지 확인 후 잠시 후 다시 시도해주세요."
-                : "모의투자 잔고가 0원입니다.");
+        if (balance <= 0) {
+            alert("모의투자 잔고가 0원입니다.");
             return;
         }
 
         // 1. Calculate Risk using Central Engine (Use Live Balance if API connected)
-        const risk = AnalysisEngine.calculatePersonalRisk(analysis, effectiveBalance, price, currentMode);
+        const risk = AnalysisEngine.calculatePersonalRisk(analysis, balance, price, currentMode);
 
         // 2. Apply Values
         if (!risk.margin || risk.margin === 0 || risk.leverage === 0) {
@@ -160,36 +156,7 @@ export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }
     };
 
     const handleConfirmTrade = async (reason: string) => {
-        setIsExecuting(true);
-        const { apiConnected } = useTradingStore.getState();
-
         try {
-            if (apiConnected && user) {
-                // Real Execution
-                const idToken = await user.getIdToken();
-                const res = await fetch('/api/binance/order', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${idToken}`
-                    },
-                    body: JSON.stringify({
-                        symbol: 'BTC/USDT',
-                        side: direction === 'LONG' ? 'BUY' : 'SELL',
-                        margin: amount,
-                        leverage: leverage,
-                        price: price
-                    })
-                });
-
-                const data = await res.json();
-                if (!res.ok || !data.success) {
-                    throw new Error(data.error || 'API Execution Failed');
-                }
-                console.log("Real Order Executed:", data);
-                // TODO: Store actual executed price/qty from data if needed
-            }
-
             // Sync Locally (Paper or Real success)
             openPosition({
                 symbol: 'BTC/USDT',
@@ -205,12 +172,11 @@ export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }
                 isPyramidEligible: isPyramidEligible,
             });
 
-            setIsModalOpen(false);
+            setIsReasonModalOpen(false);
+            setAmount(0); // Reset after trade
         } catch (error: any) {
             console.error("Trade Execution Error:", error);
-            alert(`🚨 주문 실패: ${error.message}`);
-        } finally {
-            setIsExecuting(false);
+            alert(error.message || "Failed to execute trade");
         }
     };
 
@@ -224,11 +190,10 @@ export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }
         <>
             <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} triggerReason="Trade Execution" />
             <EntryReasonModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                isOpen={isReasonModalOpen}
+                onClose={() => setIsReasonModalOpen(false)}
                 onConfirm={handleConfirmTrade}
-                riskAmount={riskAmount}
-                isExecuting={isExecuting}
+                riskAmount={amount}
             />
             <Card className="w-full max-w-sm border-zinc-800 bg-zinc-900 text-white">
                 <CardHeader>
