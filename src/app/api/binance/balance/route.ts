@@ -53,12 +53,14 @@ export async function POST(req: Request) {
 
         // Find USDT available balance
         const usdtBalance = balanceResponse['USDT'];
+
+        // If USDT doesn't exist yet (e.g., no funds transferred to Futures), default to 0
         if (!usdtBalance) {
-            return NextResponse.json({ error: 'USDT balance not found in futures account.' }, { status: 400 });
+            return NextResponse.json({ success: true, liveBalance: 0 });
         }
 
-        // 'free' is the available balance to trade
-        const liveBalance = usdtBalance.free;
+        // Use 'total' (free + used) to represent the entire seed/equity, not just free margin
+        const liveBalance = usdtBalance.total ?? 0;
 
         return NextResponse.json({ success: true, liveBalance });
     } catch (error: any) {

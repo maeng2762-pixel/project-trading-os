@@ -128,7 +128,9 @@ export default function Home() {
 
   if (!mounted) return null;
 
-  const pnlPercent = ((dailyPnl / dailyStartBalance) * 100).toFixed(2);
+  const pnlPercent = dailyStartBalance > 0
+    ? ((dailyPnl / dailyStartBalance) * 100).toFixed(2)
+    : '0.00';
   const isProfit = dailyPnl >= 0;
 
   return (
