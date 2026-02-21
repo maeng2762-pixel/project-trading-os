@@ -13,7 +13,7 @@ export const AutoPilotDashboard = () => {
     const { user } = useAuthStore();
     const { apiConnected, setApiConnected } = useTradingStore();
     const [isConsentOpen, setIsConsentOpen] = useState(false);
-    const [hasConsented, setHasConsented] = useState(false);
+    const [hasConsented, setHasConsented] = useState(apiConnected); // Persist consent if already connected
     const [hasApiKey, setHasApiKey] = useState(apiConnected);
     const [isAutoPilotActive, setIsAutoPilotActive] = useState(apiConnected);
     const [showPanicAlert, setShowPanicAlert] = useState(false);
@@ -58,10 +58,27 @@ export const AutoPilotDashboard = () => {
         }
     };
 
-    const handlePanicSwitch = () => {
+    const handlePanicSwitch = async () => {
         if (confirm("🚨 경고! 모든 포지션을 비상 종료하고 자동매매를 즉시 정지하시겠습니까? (Panic Switch)")) {
             setIsAutoPilotActive(false);
-            // TODO: Call backend to forcefully close Binance positions and wipe keys
+            setHasApiKey(false);
+            setApiConnected(false);
+            setHasConsented(false);
+
+            // Wipe keys from backend
+            if (user) {
+                try {
+                    const idToken = await user.getIdToken();
+                    await fetch('/api/binance/keys', {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${idToken}`
+                        }
+                    });
+                } catch (e) {
+                    console.error("Failed to wipe API Keys from backend:", e);
+                }
+            }
 
             // Show full-screen panic alert modal
             setShowPanicAlert(true);

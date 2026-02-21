@@ -37,3 +37,29 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Failed to securely save API keys.' }, { status: 500 });
     }
 }
+
+export async function DELETE(req: Request) {
+    try {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader?.startsWith('Bearer ')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const idToken = authHeader.split('Bearer ')[1];
+        const decodedToken = await adminAuth.verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+
+        // Wipe keys from Firestore
+        await adminDb.collection('users').doc(uid).set({
+            binanceApiKey: null,
+            binanceApiSecretEncrypted: null,
+            apiConnected: false,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        return NextResponse.json({ success: true, message: 'API Keys securely wiped.' });
+    } catch (error: any) {
+        console.error('API Key Wipe Error:', error);
+        return NextResponse.json({ error: 'Failed to securely wipe API keys.' }, { status: 500 });
+    }
+}
