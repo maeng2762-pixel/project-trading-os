@@ -44,6 +44,7 @@ export const UserService = {
                 if (data.email === 'maeng2762@gmail.com') {
                     data.tier = 'inner_circle';
                 }
+                data.apiConnected = !!data.binanceApiKey;
                 return data as Partial<TradingState>;
             } else {
                 return null;
@@ -82,6 +83,7 @@ export const UserService = {
                 if (data.email === 'maeng2762@gmail.com') {
                     data.tier = 'inner_circle';
                 }
+                data.apiConnected = !!data.binanceApiKey;
                 callback(data as Partial<TradingState>);
             } else {
                 callback(null);
