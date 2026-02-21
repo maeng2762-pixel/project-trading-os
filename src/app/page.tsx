@@ -285,8 +285,8 @@ export default function Home() {
           <DailyRitual />
           <TrustBadge />
 
-          {/* Inner Circle Restricted AutoPilot Dashboard */}
-          {user && (tier === 'inner_circle') && (
+          {/* Guarded AutoPilot Dashboard (Shows Locked state for free users) */}
+          {user && (
             <div className="mt-8 mb-8" id="autopilot-section">
               <AutoPilotDashboard />
             </div>

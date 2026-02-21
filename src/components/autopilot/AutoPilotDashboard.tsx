@@ -11,7 +11,7 @@ import { useTradingStore } from '@/store/useTradingStore';
 export const AutoPilotDashboard = () => {
     const { t } = useLanguageStore();
     const { user } = useAuthStore();
-    const { apiConnected, setApiConnected } = useTradingStore();
+    const { apiConnected, setApiConnected, tier } = useTradingStore();
     const [isConsentOpen, setIsConsentOpen] = useState(false);
     const [hasConsented, setHasConsented] = useState(apiConnected); // Persist consent if already connected
     const [hasApiKey, setHasApiKey] = useState(apiConnected);
@@ -132,14 +132,24 @@ export const AutoPilotDashboard = () => {
                 </div>
 
                 {(!hasConsented || !hasApiKey) ? (
-                    <Button
-                        id="autopilot-setup-btn"
-                        onClick={() => setIsConsentOpen(true)}
-                        className="w-full md:w-auto bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
-                    >
-                        <Lock className="w-4 h-4 mr-2 shrink-0" />
-                        <span className="truncate">Setup Guarded AutoPilot</span>
-                    </Button>
+                    tier === 'inner_circle' ? (
+                        <Button
+                            id="autopilot-setup-btn"
+                            onClick={() => setIsConsentOpen(true)}
+                            className="w-full md:w-auto bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+                        >
+                            <Lock className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="truncate">Setup Guarded AutoPilot</span>
+                        </Button>
+                    ) : (
+                        <Button
+                            disabled
+                            className="w-full md:w-auto bg-zinc-900 border border-indigo-500/20 text-indigo-500/50 cursor-not-allowed"
+                        >
+                            <Lock className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="truncate">Upgrade to Pro for Guarded AutoPilot</span>
+                        </Button>
+                    )
                 ) : (
                     <Button
                         onClick={handlePanicSwitch}
