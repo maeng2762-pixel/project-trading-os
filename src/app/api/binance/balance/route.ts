@@ -51,16 +51,28 @@ export async function POST(req: Request) {
         // Note: For USD-M Futures, use fetchBalance({ type: 'future' }) or similar.
         const balanceResponse = await exchange.fetchBalance({ type: 'future' });
 
-        // Find USDT available balance
-        const usdtBalance = balanceResponse['USDT'];
+        let liveBalance = 0;
 
-        // If USDT doesn't exist yet (e.g., no funds transferred to Futures), default to 0
-        if (!usdtBalance) {
-            return NextResponse.json({ success: true, liveBalance: 0 });
+        // Try to get USDT total from CCXT parsed data
+        const usdtBalance = balanceResponse['USDT'];
+        if (usdtBalance && usdtBalance.total !== undefined) {
+            liveBalance = usdtBalance.total;
         }
 
-        // Use 'total' (free + used) to represent the entire seed/equity, not just free margin
-        const liveBalance = usdtBalance.total ?? 0;
+        // Fallback: If parsed total is 0 or undefined, try analyzing the raw info object from Binance
+        if (liveBalance === 0 && balanceResponse.info) {
+            // Binance fapi/v2/account usually has totalWalletBalance or assets array
+            if (balanceResponse.info.totalWalletBalance) {
+                liveBalance = parseFloat(balanceResponse.info.totalWalletBalance);
+            } else if (Array.isArray(balanceResponse.info.assets)) {
+                const usdtAsset = balanceResponse.info.assets.find((a: any) => a.asset === 'USDT');
+                if (usdtAsset && usdtAsset.walletBalance) {
+                    liveBalance = parseFloat(usdtAsset.walletBalance);
+                }
+            }
+        }
+
+        console.log(`[Balance Fetch] UID: ${uid} | Detected Live Balance: $${liveBalance}`);
 
         return NextResponse.json({ success: true, liveBalance });
     } catch (error: any) {
