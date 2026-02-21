@@ -116,6 +116,10 @@ export default function Home() {
         } else if (res.status === 404 || res.status === 401) {
           // If API keys are invalid or deleted
           useTradingStore.getState().setApiConnected(false);
+        } else if (data.error) {
+          console.error("Binance API Error:", data.error);
+          alert(`⚠️ 바이낸스 API 오류가 감지되었습니다:\n\n${data.error}\n\n선물(Futures) 거래 권한이 비활성화되어 있거나 IP 제한 등의 문제일 수 있습니다. API 키 설정을 다시 확인해주세요.`);
+          useTradingStore.getState().setApiConnected(false); // Disconnect to prevent silent $0 balance
         }
       } catch (err) {
         console.error("Failed to fetch live balance:", err);
