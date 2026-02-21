@@ -16,6 +16,7 @@ export const AutoPilotDashboard = () => {
     const [hasConsented, setHasConsented] = useState(false);
     const [hasApiKey, setHasApiKey] = useState(apiConnected);
     const [isAutoPilotActive, setIsAutoPilotActive] = useState(apiConnected);
+    const [showPanicAlert, setShowPanicAlert] = useState(false);
 
     // Mock Status for Dashboard
     const emotionBlocks = 12;
@@ -58,10 +59,12 @@ export const AutoPilotDashboard = () => {
     };
 
     const handlePanicSwitch = () => {
-        if (confirm("정말 모든 포지션을 비상 종료하고 자동매매를 즉시 정지하시겠습니까? (Panic Switch)")) {
+        if (confirm("🚨 경고! 모든 포지션을 비상 종료하고 자동매매를 즉시 정지하시겠습니까? (Panic Switch)")) {
             setIsAutoPilotActive(false);
             // TODO: Call backend to forcefully close Binance positions and wipe keys
-            alert("Panic Switch Activated. All systems halted.");
+
+            // Show full-screen panic alert modal
+            setShowPanicAlert(true);
         }
     };
 
@@ -75,14 +78,34 @@ export const AutoPilotDashboard = () => {
                 onAgree={handleConsentAgree}
             />
 
+            {/* Panic Switch Full-Screen Alert */}
+            {showPanicAlert && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-300">
+                    <div className="bg-red-950 border-2 border-red-500 rounded-2xl p-8 max-w-md w-full text-center shadow-[0_0_100px_rgba(239,68,68,0.3)]">
+                        <AlertTriangle className="w-20 h-20 text-red-500 mx-auto mb-6 animate-pulse" />
+                        <h2 className="text-3xl font-black text-white px-2">시스템 강제 종료됨</h2>
+                        <p className="text-red-200 mt-4 text-lg">
+                            패닉 스위치가 가동되었습니다.<br />
+                            자동매매가 즉시 중단되고 모든 통제가 수동으로 전환되었습니다.
+                        </p>
+                        <Button
+                            onClick={() => setShowPanicAlert(false)}
+                            className="w-full mt-8 bg-zinc-800 hover:bg-zinc-700 text-white h-12 text-lg font-bold"
+                        >
+                            확인
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Header Area */}
-            <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-6 rounded-xl">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 p-6 rounded-xl">
                 <div>
-                    <h2 className="text-2xl font-bold flex items-center gap-3">
-                        <ShieldAlert className={`w-8 h-8 ${isAutoPilotActive ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                        {t('autopilot.title')}
+                    <h2 className="text-2xl font-bold flex flex-wrap items-center gap-2 md:gap-3">
+                        <ShieldAlert className={`w-8 h-8 shrink-0 ${isAutoPilotActive ? 'text-indigo-400' : 'text-zinc-500'}`} />
+                        <span>{t('autopilot.title')}</span>
                         {isAutoPilotActive && (
-                            <span className="px-3 py-1 text-xs font-bold bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30 flex items-center gap-1">
+                            <span className="px-3 py-1 text-xs font-bold bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30 flex items-center gap-1 w-fit">
                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
                                 ACTIVE
                             </span>
@@ -95,19 +118,19 @@ export const AutoPilotDashboard = () => {
                     <Button
                         id="autopilot-setup-btn"
                         onClick={() => setIsConsentOpen(true)}
-                        className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
+                        className="w-full md:w-auto bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"
                     >
-                        <Lock className="w-4 h-4 mr-2" />
-                        Setup Guarded AutoPilot
+                        <Lock className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="truncate">Setup Guarded AutoPilot</span>
                     </Button>
                 ) : (
                     <Button
                         onClick={handlePanicSwitch}
                         variant="destructive"
-                        className="h-12 px-6 font-bold text-lg bg-red-600 hover:bg-red-700 shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-all animate-pulse"
+                        className="w-full md:w-auto h-12 px-4 md:px-6 font-bold text-base md:text-lg bg-red-600 hover:bg-red-700 shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-all animate-pulse"
                     >
-                        <Power className="w-5 h-5 mr-2" />
-                        {t('autopilot.kill_switch')}
+                        <Power className="w-5 h-5 mr-2 shrink-0" />
+                        <span className="truncate">패닉 스위치 (모두 종료)</span>
                     </Button>
                 )}
             </div>
