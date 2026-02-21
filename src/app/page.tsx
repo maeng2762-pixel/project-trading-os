@@ -262,32 +262,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* API Connection Lock (Onboarding Funnel) */}
-            {user && !apiConnected && (
-              <div className="absolute inset-0 z-20 backdrop-blur-md bg-zinc-950/60 flex flex-col items-center justify-start pt-[20vh] text-center">
-                <div className="p-8 rounded-2xl bg-zinc-900/90 border border-amber-500/50 shadow-2xl max-w-md mx-4 animate-in fade-in zoom-in duration-500">
-                  <span className="text-4xl mb-4 block">🔒</span>
-                  <h2 className="text-2xl font-bold text-white mb-2">실계좌 연동 필요</h2>
-                  <p className="text-zinc-300 mb-6 leading-relaxed text-sm">
-                    Kelly의 분석은 당신의 실제 자산 규모와 변동성에 맞춰 계산됩니다. 바이낸스 API를 연결하여 당신만의 생존 공식을 확인하세요.
-                  </p>
-                  <div className="flex justify-center">
-                    <Button
-                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 shadow-[0_0_15px_rgba(217,119,6,0.5)]"
-                      onClick={() => {
-                        const section = document.getElementById('autopilot-section');
-                        if (section) section.scrollIntoView({ behavior: 'smooth' });
-                        setTimeout(() => {
-                          document.getElementById('autopilot-setup-btn')?.click();
-                        }, 200);
-                      }}
-                    >
-                      🚀 API 연결하기
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* ACTIVE OPS MODE */}
             {positions.length > 0 ? (

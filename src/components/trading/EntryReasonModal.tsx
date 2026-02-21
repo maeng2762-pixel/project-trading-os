@@ -20,9 +20,10 @@ interface EntryReasonModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (reason: string) => void;
+    isExecuting?: boolean;
 }
 
-export const EntryReasonModal = ({ isOpen, onClose, onConfirm, riskAmount }: EntryReasonModalProps & { riskAmount: number }) => {
+export const EntryReasonModal = ({ isOpen, onClose, onConfirm, riskAmount, isExecuting }: EntryReasonModalProps & { riskAmount: number }) => {
     const { t } = useLanguageStore(); // Import
     const { recordImpulseResistance } = useTradingStore();
     const [reason, setReason] = useState<EntryReason | null>(null);
@@ -77,8 +78,9 @@ export const EntryReasonModal = ({ isOpen, onClose, onConfirm, riskAmount }: Ent
                     <Button type="button" variant="secondary" onClick={handleCancel} className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700">
                         {t('common.cancel')}
                     </Button>
-                    <Button type="button" onClick={handleConfirm} disabled={!reason} className="bg-green-600 hover:bg-green-700 ml-auto">
-                        {t('entry.execute')}
+                    <Button type="button" onClick={handleConfirm} disabled={!reason || isExecuting} className="bg-green-600 hover:bg-green-700 ml-auto flex items-center gap-2">
+                        {isExecuting ? <RefreshCcw className="h-4 w-4 animate-spin" /> : null}
+                        {isExecuting ? 'Executing...' : t('entry.execute')}
                     </Button>
                 </DialogFooter>
             </DialogContent>
