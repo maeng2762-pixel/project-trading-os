@@ -1,0 +1,22 @@
+{
+  "name": "Kelly - AI Trading Guard",
+  "short_name": "Kelly OS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "description": "Calculate Risk. Protect Capital. AI-Powered Trading Discipline System.",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "orientation": "portrait"
+}
