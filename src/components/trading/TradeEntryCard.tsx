@@ -130,6 +130,13 @@ export const TradeEntryCard = ({ analysis }: { analysis: AnalysisResult | null }
 
         const { currentMode } = useTradingStore.getState();
 
+        if (effectiveBalance <= 0) {
+            alert(apiConnected
+                ? "라이브 잔고가 0원이거나 불러오는 중입니다. 선물 지갑에 USDT가 있는지 확인 후 잠시 후 다시 시도해주세요."
+                : "모의투자 잔고가 0원입니다.");
+            return;
+        }
+
         // 1. Calculate Risk using Central Engine (Use Live Balance if API connected)
         const risk = AnalysisEngine.calculatePersonalRisk(analysis, effectiveBalance, price, currentMode);
 
