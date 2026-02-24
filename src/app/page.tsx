@@ -307,11 +307,24 @@ export default function Home() {
               {/* Bottom Row: Controls & Money (Secondary) */}
               <div className="flex items-center justify-between">
 
-                {/* Balance (Demoted) */}
+                {/* Balance & Manual Edit */}
                 <div className="flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity">
                   <div className="flex flex-col">
                     <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-zinc-600 mb-0.5">TOTAL EQUITY</span>
-                    <span className="font-mono text-sm font-light text-zinc-300 drop-shadow-sm">${apiConnected ? liveBalance.toFixed(2) : balance.toFixed(0)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-light text-zinc-300 drop-shadow-sm">${apiConnected ? liveBalance.toFixed(2) : balance.toFixed(0)}</span>
+                      <div
+                        className="opacity-50 hover:opacity-100 cursor-pointer p-1"
+                        onClick={() => {
+                          const newBalance = prompt("수동으로 자산을 입력하세요 (USD):", balance.toString());
+                          if (newBalance && !isNaN(Number(newBalance))) {
+                            setBalance(Number(newBalance));
+                          }
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                      </div>
+                    </div>
                   </div>
                   <div className="h-6 w-px bg-zinc-800"></div>
                   <div className="flex flex-col">
@@ -352,6 +365,23 @@ export default function Home() {
                         <span className="text-[8px] font-extrabold text-zinc-500 tracking-[0.2em] uppercase hidden sm:inline">Offline</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Manual Seed Setup (Universal) */}
+                  <div
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-[#09090b] border border-zinc-800/80 cursor-pointer hover:bg-zinc-900 transition-colors h-7 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]"
+                    onClick={() => {
+                      const newSeed = prompt("수동으로 총 실시간 자본(Seed)을 입력하세요 (USDT/USD 기준):\n\n입력된 자본을 기준으로 블루/레드 포션의 리스크 동적 할당과 기대수익 계산이 돌아갑니다.", balance.toString());
+                      if (newSeed && !isNaN(Number(newSeed))) {
+                        setBalance(Number(newSeed)); // useTradingStore's setBalance updates both balance and liveBalance
+                        alert(`수동 자산 등록 완료: $${Number(newSeed).toLocaleString()}`);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs">✏️</span>
+                      <span className="text-[8px] font-extrabold text-zinc-300 tracking-[0.2em] uppercase hidden sm:inline">수동 자산 등록</span>
+                    </div>
                   </div>
 
                   <div className="scale-90 sm:scale-100 flex items-center gap-2 sm:gap-3 origin-right">
@@ -401,6 +431,13 @@ export default function Home() {
 
           {/* ... Rest of JSX same ... */}
           <div className="container mx-auto p-4 mt-6">
+            {/* Exchange Agnostic Declaration */}
+            <div className="text-center mb-6 opacity-60 hover:opacity-100 transition-opacity">
+              <span className="text-[10px] text-zinc-500 uppercase tracking-widest break-keep">
+                "Kelly는 바이낸스, 업비트, 빗썸, 나스닥 등 당신이 어떤 시장에서 거래하든 상관없이 당신의 자본을 통제하고 생존을 돕습니다."
+              </span>
+            </div>
+
             <DailyRitual />
             <TrustBadge />
 

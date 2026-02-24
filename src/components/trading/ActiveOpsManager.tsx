@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Moon, ShieldAlert, ArrowRight, Zap, Ban } from 'lucide-react';
+import { Moon, ShieldAlert, ArrowRight, Zap, Ban, CheckCircle2, Skull } from 'lucide-react';
 import { Position } from '@/store/useTradingStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 interface ActiveOpsManagerProps {
     position: Position;
@@ -82,9 +84,81 @@ export const ActiveOpsManager = ({ position, analysis }: ActiveOpsManagerProps) 
     // The advice "Holding position..." comes from generatePositionAdvice. 
     // I will update AnalysisEngine next. For now, let's localize the UI elements.
 
+    const [showExecuteModal, setShowExecuteModal] = React.useState<{ type: 'TP' | 'SL', isOpen: boolean }>({ type: 'TP', isOpen: false });
+    const [executeTime, setExecuteTime] = React.useState<string>(new Date().toISOString().slice(0, 16));
+    const [isHit, setIsHit] = React.useState(false);
+
+    const openExecuteModal = (type: 'TP' | 'SL') => {
+        setExecuteTime(new Date().toISOString().slice(0, 16));
+        setShowExecuteModal({ type, isOpen: true });
+    };
+
+    const confirmExecute = () => {
+        const exitPrice = showExecuteModal.type === 'TP' ? targetPrice : stopPrice;
+
+        if (showExecuteModal.type === 'SL') {
+            setIsHit(true);
+            setTimeout(() => {
+                closePosition(position.id, exitPrice);
+                // Also could decrement survival score here if not already handled by store
+                useTradingStore.getState().updateSurvivalScore(-5);
+                setIsHit(false);
+                setShowExecuteModal({ ...showExecuteModal, isOpen: false });
+            }, 800); // Wait for red flash
+        } else {
+            closePosition(position.id, exitPrice);
+            setShowExecuteModal({ ...showExecuteModal, isOpen: false });
+        }
+    };
+
 
     return (
-        <Card className="w-full h-full border-zinc-800 bg-zinc-950 text-white shadow-2xl overflow-hidden flex flex-col">
+        <Card className={`w-full h-full border-zinc-800 bg-zinc-950 text-white shadow-2xl overflow-hidden flex flex-col relative transition-all duration-300 ${isHit ? 'bg-red-950 scale-[0.98]' : ''}`}>
+
+            {/* Global Hit Effect Overlay */}
+            {isHit && (
+                <div className="absolute inset-0 bg-red-600/30 z-50 pointer-events-none animate-[pulse_0.1s_ease-in-out_infinite]"></div>
+            )}
+
+            {/* Execute Modal */}
+            <Dialog open={showExecuteModal.isOpen} onOpenChange={(open) => setShowExecuteModal(prev => ({ ...prev, isOpen: open }))}>
+                <DialogContent className={`${showExecuteModal.type === 'SL' ? 'bg-rose-950 border-rose-900' : 'bg-zinc-900 border-emerald-900'} text-white`}>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {showExecuteModal.type === 'TP' ? (
+                                <><CheckCircle2 className="text-emerald-500" /> 목표 도달 (익절 확정)</>
+                            ) : (
+                                <><Skull className="text-rose-500" /> 무효화 (손절 확정)</>
+                            )}
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            해당 포지션을 현재 설정된 {showExecuteModal.type === 'TP' ? '목표가(+R)' : '손절가(-1R)'} 기준으로 정산합니다. 종료 시간을 확인해주세요.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4">
+                        <label className="text-xs text-zinc-500 mb-1 block">종료 시간 (Time of Execution)</label>
+                        <Input
+                            type="datetime-local"
+                            className="bg-black/50 border-zinc-700 text-white"
+                            value={executeTime}
+                            onChange={(e) => setExecuteTime(e.target.value)}
+                        />
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" className="text-zinc-400 border-zinc-700" onClick={() => setShowExecuteModal(prev => ({ ...prev, isOpen: false }))}>
+                            취소
+                        </Button>
+                        <Button
+                            className={showExecuteModal.type === 'TP' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-rose-600 hover:bg-rose-500 text-white'}
+                            onClick={confirmExecute}
+                        >
+                            확인 및 자산 업데이트
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             {/* Header: Status Bar */}
             <div className={`p-4 flex flex-wrap justify-between items-center gap-y-3 ${isSleepMode ? 'bg-indigo-950' : 'bg-zinc-900'}`}>
                 <div className="flex items-center gap-3">
@@ -183,6 +257,29 @@ export const ActiveOpsManager = ({ position, analysis }: ActiveOpsManagerProps) 
                         </div>
                     </div>
                 )}
+
+                {/* 4. 1-Click PnL Execution Panel */}
+                <div className="border-t border-zinc-800/50 pt-6 mt-2">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-3 text-center">1-Click PnL Execution</div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Button
+                            variant="default"
+                            className="h-16 flex flex-col items-center justify-center gap-1 bg-emerald-600/20 border border-emerald-500/50 hover:bg-emerald-600/40 text-emerald-400 font-black tracking-widest shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]"
+                            onClick={() => openExecuteModal('TP')}
+                        >
+                            <span className="text-lg">🔵 목표 도달</span>
+                            <span className="text-[10px] opacity-70">(Take Profit +R)</span>
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            className="h-16 flex flex-col items-center justify-center gap-1 bg-rose-900/30 border border-rose-500/50 hover:bg-rose-900/50 text-rose-400 font-black tracking-widest shadow-[inset_0_0_10px_rgba(225,29,72,0.1)]"
+                            onClick={() => openExecuteModal('SL')}
+                        >
+                            <span className="text-lg">🔴 무효화/손절</span>
+                            <span className="text-[10px] opacity-70">(Stop Loss -1R)</span>
+                        </Button>
+                    </div>
+                </div>
 
             </CardContent>
         </Card>
