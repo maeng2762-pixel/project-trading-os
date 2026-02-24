@@ -15,8 +15,8 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-    user: null,
-    loading: true,
+    user: { uid: 'mock_uid_123', email: 'pro_user@hp1.os' } as any,
+    loading: false,
     unsubscribe: null,
     login: async () => {
         try {

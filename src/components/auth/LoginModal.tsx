@@ -43,7 +43,7 @@ export function LoginModal() {
                 <DialogHeader>
                     <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-indigo-400 to-coral-400 bg-clip-text text-transparent flex justify-center items-center gap-2">
                         <ShieldCheck className="h-8 w-8 text-indigo-400" />
-                        Kelly Auth
+                        HP1 Auth
                     </DialogTitle>
                     <DialogDescription className="text-center text-zinc-400 pt-2">
                         Access the advanced **AI Trading Guard**.<br />

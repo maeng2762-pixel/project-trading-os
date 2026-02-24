@@ -204,7 +204,7 @@ export const translations = {
         "billing.join_waitlist": "대기 명단 등록 ($999/평생)",
 
         // Trust Score & Ruin (v5.0)
-        "trust.title": "Kelly's 실전 투자 현황",
+        "trust.title": "HP1 실전 투자 현황",
         "trust.subtitle": "100% 투명한 실시간 계좌 공개",
         "trust.verified": "실시간 검증됨",
         "trust.live": "LIVE: 공식 계좌",
@@ -221,17 +221,17 @@ export const translations = {
         // v7.0 Risk Engine
         "risk.tactical_training": "전술 모드: 훈련용 바퀴 장착 (Max 5%, 1x)",
         "risk.tactical_positive_ev": "전술 모드: 훈련이라도 수익성이 있는 자리(Positive EV)여야 합니다.",
-        "risk.capital_negative": "자본 모드: 엣지가 없습니다 (Kelly ≤ 0)",
+        "risk.capital_negative": "자본 모드: 엣지가 없습니다 (HP1 ≤ 0)",
         "risk.capital_risky": "자본 모드: {grade}등급은 너무 위험합니다.",
-        "risk.capital_safe": "자본 모드: {grade}등급 (Half-Kelly {size}%, {lev}x)",
+        "risk.capital_safe": "자본 모드: {grade}등급 (Half-HP1 {size}%, {lev}x)",
         "entry.auto_set_blocked": "⚠️ 자동 설정 차단됨",
 
         // v7.0 Beginner Guide
         "guide.btn_label": "초보자 가이드",
-        "guide.step1_title": "Kelly는 리딩방이 아닙니다.",
-        "guide.step1_desc": "Kelly는 당신에게 '무엇을 사라'고 말하는 봇이 아니라, 당신이 '감정에 휘둘려 돈을 잃지 않게' 막아주는 AI 리스크 관리 코치입니다.",
+        "guide.step1_title": "HP1은 리딩방이 아닙니다.",
+        "guide.step1_desc": "HP1은 당신에게 '무엇을 사라'고 말하는 봇이 아니라, 당신이 '감정에 휘둘려 돈을 잃지 않게' 막아주는 AI 리스크 관리 코치입니다.",
         "guide.step2_title": "두 개의 자아를 분리하세요.",
-        "guide.step2_desc": "매매가 하고 시플 땐 '전술 모드(Tactical)'에서 소액으로 즐기세요. 진짜 자산을 불릴 땐 '자본 모드(Capital)'에서 신중하게 접근하세요.",
+        "guide.step2_desc": "매매가 하고 싶을 땐 '레드 포션(전술 도박장)'에서 소액으로 즐기세요. 진짜 자산을 불릴 땐 '블루 포션(생존 자본)'에서 신중하게 접근하세요.",
         "guide.step3_title": "돈보다 점수를 버세요.",
         "guide.step3_desc": "수익금(PnL)은 잊으세요. 규율을 지키고 원칙대로 매매하면 올라가는 '생존 점수(Survival Score)'가 당신의 진짜 실력입니다.",
 
@@ -242,7 +242,7 @@ export const translations = {
         "guide.step_brain_desc": "AI가 모든 상황을 분석해 등급을 매깁니다. S급과 A급은 강력 추천, B급은 소액 진입입니다. C급 이하는 '관망'하세요. 수수료도 못 건지는 자리입니다.",
 
         "guide.step4_title": "준비 되셨나요?",
-        "guide.step4_desc": "처음에는 '전술 모드'로 시작됩니다. AI가 제안하는 리스크 관리를 경험해보세요. 행운을 빕니다!",
+        "guide.step4_desc": "처음에는 '레드 포션(전술 도박장)'으로 시작됩니다. AI가 제안하는 리스크 관리를 경험해보세요. 행운을 빕니다!",
         "guide.next_btn": "다음",
         "guide.start_btn": "시작하기",
 
@@ -258,9 +258,9 @@ export const translations = {
         "autopilot.kill_switch": "패닉 스위치 (모두 종료)",
 
         "autopilot.consent_title": "⚠️ 이 기능은 투자 일임이 아닙니다.",
-        "autopilot.consent_p1": "Kelly는 당신에게 돈을 벌어주는 마법의 봇이 아닙니다.",
-        "autopilot.consent_p2": "이 기능은 당신이 설정한 원칙을 감정 없이 '대리 실행' 해주는 API 연동 도구일 뿐입니다.",
-        "autopilot.consent_p3": "Kelly는 생존 확률이 유리할 때만 거래를 돕습니다. (Capital Mode + A급 이상 신호 강제 진행)",
+        "autopilot.consent_p1": "HP1은 당신에게 돈을 벌어주는 마법의 봇이 아닙니다.",
+        "autopilot.consent_p2": "알고리즘은 시장 상황에 따라 연패를 기록할 수 있으며, 이로 인한 원금 손실의 책임은 전적으로 사용자 본인에게 있습니다.",
+        "autopilot.consent_p3": "HP1은 생존 확률이 유리할 때만 거래를 돕습니다. (Capital Mode + A급 이상 신호 강제 진행)",
         "autopilot.consent_chk1": "한 달에 -8%의 손실이 발생할 수도 있는 극단적 보수적 전략임에 동의하십니까?",
         "autopilot.consent_chk2": "원금 손실의 책임은 전적으로 본인에게 있음을 동의하십니까?",
         "autopilot.consent_start": "내 API 키 연결하기"
@@ -276,7 +276,7 @@ export const translations = {
 
         // Observer Mode
         "observer.title": "Observer Mode",
-        "observer.desc": "Sign in to access real-time AI signals and execute trades with Kelly's Guard.",
+        "observer.desc": "계정을 연동하고 HP1의 생존 통제 시스템에 접근하세요.",
         "observer.login": "Login to Start",
 
         // Sentinel
@@ -404,17 +404,17 @@ export const translations = {
         // v7.0 Risk Engine
         "risk.tactical_training": "Tactical Mode: Training Wheels On (Max 5%, 1x)",
         "risk.tactical_positive_ev": "Tactical Mode: Even training requires Positive EV.",
-        "risk.capital_negative": "Capital Mode: Negative Edge (Kelly <= 0)",
+        "risk.capital_negative": "Capital Mode: Negative Edge (HP1 <= 0)",
         "risk.capital_risky": "Capital Mode: {grade}-Grade is too risky.",
-        "risk.capital_safe": "Capital Mode: {grade}-Grade (Half-Kelly {size}%, {lev}x)",
+        "risk.capital_safe": "Capital Mode: {grade}-Grade (Half-HP1 {size}%, {lev}x)",
         "entry.auto_set_blocked": "⚠️ Auto-Set Blocked",
 
         // v7.0 Beginner Guide
         "guide.btn_label": "Beginner Guide",
-        "guide.step1_title": "Kelly is NOT a Signal Bot.",
-        "guide.step1_desc": "Kelly is an AI Risk Coach designed to prevent you from losing money due to emotions, not just tell you what to buy.",
+        "guide.step1_title": "HP1 is NOT a Signal Bot.",
+        "guide.step1_desc": "HP1 is an AI Risk Coach designed to prevent you from losing money due to emotions, not just tell you what to buy.",
         "guide.step2_title": "Separate Your Ego.",
-        "guide.step2_desc": "Use 'Tactical Mode' for fun and practice with small amounts. Use 'Capital Mode' for serious wealth accumulation.",
+        "guide.step2_desc": "Use 'Red Potion' for fun and practice with small amounts. Use 'Blue Potion' for serious wealth accumulation.",
         "guide.step3_title": "Earn Score, Not Just Money.",
         "guide.step3_desc": "Forget PnL. Focus on your 'Survival Score', which rises when you follow discipline and rules. That is your true skill.",
 
@@ -425,7 +425,7 @@ export const translations = {
         "guide.step_brain_desc": "AI grades every setup. S/A are strong buys. B is moderate (half size). C/F means 'Stay Away' - the expected value doesn't even cover fees.",
 
         "guide.step4_title": "Are You Ready?",
-        "guide.step4_desc": "You will start in 'Tactical Mode'. Experience the AI risk management now. Good luck!",
+        "guide.step4_desc": "You will start in 'Red Potion' mode. Experience the AI risk management now. Good luck!",
         "guide.next_btn": "Next",
         "guide.start_btn": "Let's Start",
 
@@ -441,9 +441,9 @@ export const translations = {
         "autopilot.kill_switch": "PANIC SWITCH (CLOSE ALL)",
 
         "autopilot.consent_title": "⚠️ This is NOT an Investment Firm.",
-        "autopilot.consent_p1": "Kelly is not a magic bot guaranteed to make you rich.",
-        "autopilot.consent_p2": "This tool simply 'executes' your rules via API without emotion.",
-        "autopilot.consent_p3": "Kelly trades only when survival odds are favorable. (Capital Mode + Grade A+ only)",
+        "autopilot.consent_p1": "HP1 is not a magic bot guaranteed to make you rich.",
+        "autopilot.consent_p2": "The algorithm may experience losing streaks depending on market conditions, and you are solely responsible for any principal losses.",
+        "autopilot.consent_p3": "HP1 trades only when survival odds are favorable. (Capital Mode + Grade A+ only)",
         "autopilot.consent_chk1": "Do you agree to this extreme conservative strategy that could yield a -8% monthly loss?",
         "autopilot.consent_chk2": "Do you agree that all risk of principal loss lies entirely with you?",
         "autopilot.consent_start": "Connect MY API Key"

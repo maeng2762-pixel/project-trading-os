@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kelly - AI Trading Guard",
-  description: "Calculate Risk. Protect Capital.",
+  title: "HP1 - 계좌 생존 OS",
+  description: "트레이더의 시드 보존을 위한 강제 생존 통제 시스템",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon.png",
@@ -24,8 +24,8 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Kelly OS",
+    statusBarStyle: "black-translucent",
+    title: "HP1 OS",
   },
 };
 

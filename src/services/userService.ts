@@ -42,9 +42,9 @@ export const UserService = {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 if (data.email === 'maeng2762@gmail.com') {
-                    data.tier = 'inner_circle';
+                    data.tier = 'PRO';
                 }
-                data.apiConnected = !!data.binanceApiKey;
+                data.apiConnected = !!data.binanceKeys?.apiKey;
                 return data as Partial<TradingState>;
             } else {
                 return null;
@@ -64,9 +64,15 @@ export const UserService = {
                 await setDoc(userRef, {
                     email,
                     joinedAt: new Date().toISOString(),
-                    tier: 'observer', // Default tier
+                    tier: email === 'maeng2762@gmail.com' ? 'PRO' : 'observer', // Default tier
                     disciplineScore: 50,
                 });
+            } else {
+                // If user exists but is maeng2762@gmail.com and not PRO, upgrade them
+                const data = docSnap.data();
+                if (email === 'maeng2762@gmail.com' && data.tier !== 'PRO') {
+                    await updateDoc(userRef, { tier: 'PRO' });
+                }
             }
         } catch (error) {
             console.error("Error initializing user:", error);
@@ -81,9 +87,9 @@ export const UserService = {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 if (data.email === 'maeng2762@gmail.com') {
-                    data.tier = 'inner_circle';
+                    data.tier = 'PRO';
                 }
-                data.apiConnected = !!data.binanceApiKey;
+                data.apiConnected = !!data.binanceKeys?.apiKey;
                 callback(data as Partial<TradingState>);
             } else {
                 callback(null);

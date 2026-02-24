@@ -33,7 +33,7 @@ export class BacktestEngine {
      * Run Simulation
      */
     async run() {
-        console.log(`[Backtest] 🚀 Starting Simulation via Kelly v6.0 Engine...`);
+        console.log(`[Backtest] 🚀 Starting Simulation via HP1 v6.0 Engine...`);
         const ohlcv = await this.fetchHistory(1000);
 
         // Convert to Candles
@@ -101,7 +101,7 @@ export class BacktestEngine {
                 // EV Filter is already applied inside AnalysisEngine (returns Grade F / Neutral if EV < Cost)
                 // So if we are here, EV is Positive.
 
-                // Calculate Size (Kelly v6.0 logic)
+                // Calculate Size (HP1 v6.0 logic)
                 const risk = AnalysisEngine.calculatePersonalRisk(signal, this.balance, currentPrice);
 
                 if (risk.margin > 0) {
@@ -151,7 +151,7 @@ export class BacktestEngine {
     }
 
     private report() {
-        console.log(`\n=== 📊 Evaluation Report (Kelly v6.0) ===`);
+        console.log(`\n=== 📊 Evaluation Report (HP1 v6.0) ===`);
         console.log(`Initial Balance: $${this.initialBalance}`);
         console.log(`Final Balance:   $${this.balance.toFixed(2)}`);
 

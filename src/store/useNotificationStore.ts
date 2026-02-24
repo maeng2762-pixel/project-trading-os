@@ -23,7 +23,7 @@ export const useNotificationStore = create<NotificationState>()(
                     const permission = await Notification.requestPermission();
                     if (permission === 'granted') {
                         set({ isEnabled: true });
-                        new Notification("Kelly Trading OS", { body: "알림이 활성화되었습니다. (Notification Enabled)" });
+                        new Notification("HP1 Trading OS", { body: "알림이 활성화되었습니다. (Notification Enabled)" });
                         return true;
                     }
                     return false;
@@ -34,7 +34,7 @@ export const useNotificationStore = create<NotificationState>()(
             })),
         }),
         {
-            name: 'kelly-notification-storage',
+            name: 'hp1-notification-storage',
         }
     )
 );

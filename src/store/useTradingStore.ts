@@ -40,8 +40,9 @@ export interface TradingState {
     lockReason: 'STOP_LOSS_LIMIT' | 'MANUAL' | 'CONSECUTIVE_LOSS' | 'DAILY_LOSS_LIMIT' | 'RULE_VIOLATION' | 'TILT_DETECTED' | null;
     lockEndTime: number | null;
 
-    // Phase 12: Dual Engine & Gamification (v7.0)
-    currentMode: 'CAPITAL' | 'TACTICAL';
+    // Phase 12: Dual Engine & Gamification (v7.0) -> Replaced by Phase 13 Potion Meta
+    potionMode: 'BLUE' | 'RED';
+    setPotionMode: (mode: 'BLUE' | 'RED') => void;
     survivalScore: number; // 0-100
     xp: number; // Experience Points
     level: number; // 1-99
@@ -50,13 +51,19 @@ export interface TradingState {
     disciplineScore: number;
     dailyStreak: number;
     consecutiveLosses: number; // New for Cooldown
-    ruleViolations: number; // v3.0
-    maxAllowedLeverage: number; // v3.0
-    tradeHistory: Position[];
+    ruleViolations: number;
+    maxAllowedLeverage: number;
+    tradeHistory: any[];
     resistedImpulses: ResistedImpulse[];
     isReviewPending: boolean;
     pendingReviewTradeId: string | null;
-    lastPledgeTime: number | null; // New: For Daily Ritual
+    lastPledgeTime: number | null;
+
+    // Auto-Journal Sync
+    isSyncingHistory: boolean;
+    fetchTradeHistory: () => Promise<void>;
+    emotionTags: Record<string, string>;
+    setEmotionTag: (tradeId: string, tag: string) => void;
 
     // Phase 15: Real API Integration
     liveBalance: number;
@@ -80,14 +87,15 @@ export interface TradingState {
     toggleSleepMode: () => void; // New: Toggle Sleep Mode
 
     // v7.0 Actions
-    setMode: (mode: 'CAPITAL' | 'TACTICAL') => void;
+
     addXp: (amount: number) => void;
     updateSurvivalScore: (change: number) => void;
     registerTradeResult: (pnlPercent: number) => void;
 
     isAdmin: boolean;
-    tier: 'observer' | 'partner' | 'inner_circle'; // Added Tier
+    tier: 'FREE' | 'PRO'; // Updated SaaS Tiers
     setAdmin: (isAdmin: boolean) => void;
+    setTier: (tier: 'FREE' | 'PRO') => void; // Allow upgrading tier
 
     syncStatus: string; // New: Debug Sync Status
     setSyncStatus: (status: string) => void;
@@ -106,8 +114,9 @@ export const useTradingStore = create<TradingState>()(
             lockReason: null,
             lockEndTime: null,
 
-            // v7.0 Defaults
-            currentMode: 'CAPITAL',
+            // Phase 12 / 13
+            potionMode: 'BLUE',
+            setPotionMode: (mode) => set({ potionMode: mode }),
             survivalScore: 100,
             xp: 0,
             level: 1,
@@ -123,21 +132,51 @@ export const useTradingStore = create<TradingState>()(
             isReviewPending: false,
             pendingReviewTradeId: null,
             lastPledgeTime: null,
-            isSleepMode: false, // Default off
+            isSleepMode: false,
             isAdmin: false,
-            tier: 'observer', // Default tier
+            tier: 'PRO',
             syncStatus: 'Initializing...',
+            isSyncingHistory: false,
+            emotionTags: {},
+
+            fetchTradeHistory: async () => {
+                set({ isSyncingHistory: true });
+                try {
+                    // Use standard fetch if auth is handled via cookies or get token
+                    const { useAuthStore } = await import('@/store/useAuthStore');
+                    const { user } = useAuthStore.getState();
+                    if (!user) throw new Error("Not logged in");
+
+                    const token = await user.getIdToken();
+                    const res = await fetch('/api/binance/history', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+
+                    if (data.success && data.history) {
+                        set({ tradeHistory: data.history });
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch history:", error);
+                } finally {
+                    set({ isSyncingHistory: false });
+                }
+            },
 
             setSyncStatus: (status) => set({ syncStatus: status }),
 
+            setEmotionTag: (tradeId, tag) => set((state) => ({
+                emotionTags: { ...state.emotionTags, [tradeId]: tag }
+            })),
+
             setAdmin: (isAdmin) => set({ isAdmin }),
+            setTier: (tier) => set({ tier }), // Added missing implementation
 
             setApiConnected: (status) => set({ apiConnected: status }),
 
             setBalance: (amount) => set({ balance: amount, liveBalance: amount }),
 
-            // v7.0 Actions
-            setMode: (mode) => set({ currentMode: mode }),
+            // v7.0 Actions -> Phase 13 Potion Meta
 
             addXp: (amount) => set((state) => {
                 const newXp = state.xp + amount;
@@ -157,7 +196,7 @@ export const useTradingStore = create<TradingState>()(
 
                 if (pnlPercent < 0) {
                     newConsecutiveLosses += 1;
-                    if (state.currentMode === 'CAPITAL' && newConsecutiveLosses >= 3) {
+                    if (state.potionMode === 'BLUE' && newConsecutiveLosses >= 3) {
                         isLocked = true;
                         lockReason = 'CONSECUTIVE_LOSS';
                         lockEndTime = Date.now() + 24 * 60 * 60 * 1000;
@@ -196,7 +235,7 @@ export const useTradingStore = create<TradingState>()(
                     lockReason: null,
                     lockEndTime: null,
 
-                    currentMode: 'CAPITAL',
+                    potionMode: 'BLUE',
                     survivalScore: 100,
                     xp: 0,
                     level: 1,
@@ -211,8 +250,7 @@ export const useTradingStore = create<TradingState>()(
                     pendingReviewTradeId: null,
                     lastPledgeTime: null,
                     isSleepMode: false,
-                    isAdmin: false,
-                    tier: 'observer',
+                    tier: 'FREE',
                 });
             },
 
@@ -474,9 +512,9 @@ export const useTradingStore = create<TradingState>()(
             // [New v5.0] Zero Marginal Cost: Load Global Signal
             // Call this when Firestore listener receives a new 'system/market_analysis' update.
             loadGlobalSignal: (signal: AnalysisResult, currentPrice: number) => {
-                const { balance, currentMode } = get();
+                const { balance, potionMode } = get();
                 // Client-side CPU Calculation
-                const risk = AnalysisEngine.calculatePersonalRisk(signal, balance, currentPrice, currentMode);
+                const risk = AnalysisEngine.calculatePersonalRisk(signal, balance, currentPrice, potionMode);
 
                 // Store/Update Global Context for UI to read
                 return risk;
@@ -491,7 +529,7 @@ export const useTradingStore = create<TradingState>()(
                 positions: state.positions,
                 tradeHistory: state.tradeHistory,
                 // Persist v7.0 State
-                currentMode: state.currentMode,
+                potionMode: state.potionMode,
                 survivalScore: state.survivalScore,
                 xp: state.xp,
                 level: state.level,

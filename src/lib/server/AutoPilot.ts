@@ -6,7 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
  * AutoPilot: The "Inner Circle" Execution Unit
  * 
  * Strict Isolation Rule:
- * - This worker ONLY runs for users with tier === 'inner_circle'.
+ * - This worker ONLY runs for users with tier === 'PRO'.
  * - It has its own infrastructure/queue separate from the public signal stream.
  */
 export class AutoPilot {
@@ -76,7 +76,7 @@ export class AutoPilot {
             }
 
             const userData = userSnap.data();
-            if (userData.tier !== 'inner_circle') {
+            if (userData.tier !== 'PRO') {
                 console.warn(`[AutoPilot] ⛔ Access Denied: User ${userId} is ${userData.tier}.`);
                 return { success: false, reason: 'tier_low' };
             }

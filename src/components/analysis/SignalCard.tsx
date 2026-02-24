@@ -27,7 +27,7 @@ export const SignalCard = ({ analysis }: SignalCardProps) => {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="h-32 flex items-center justify-center text-xs text-zinc-600">
-                    Scanning Market (KELLY Protocol)...
+                    Scanning Market (HP1 Protocol)...
                 </CardContent>
             </Card>
         );

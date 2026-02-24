@@ -4,13 +4,15 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useLanguageStore } from '@/store/useLanguageStore';
-import { BookOpen, ChevronRight, Check, Shield, Gamepad2, TrendingUp } from 'lucide-react';
+import { useTradingStore } from '@/store/useTradingStore';
+import { BookOpen, ChevronRight, Check, Shield, Gamepad2, TrendingUp, FlaskConical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const BeginnerGuide = () => {
     const { t } = useLanguageStore();
     const [isOpen, setIsOpen] = useState(false);
     const [step, setStep] = useState(0);
+    const { potionMode, setPotionMode } = useTradingStore();
 
     // Check localStorage on mount
     useEffect(() => {
@@ -44,14 +46,30 @@ export const BeginnerGuide = () => {
             color: "from-indigo-500/20 to-blue-500/20"
         },
         {
-            icon: <div className="flex gap-4">
-                <Gamepad2 className="w-12 h-12 text-emerald-400" />
-                <div className="w-px h-12 bg-zinc-700" />
-                <Shield className="w-12 h-12 text-indigo-400" />
+            icon: <div className="flex flex-col items-center gap-4 w-full">
+                <div className="flex items-center bg-[#050505] p-0.5 rounded-full border border-zinc-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]">
+                    <button
+                        onClick={() => setPotionMode('BLUE')}
+                        className={`flex items-center justify-center gap-1.5 px-6 py-2 rounded-full transition-all duration-500 ease-out flex-shrink-0 ${potionMode === 'BLUE' ? 'bg-[#1e3a8a] shadow-[0_0_20px_rgba(30,58,138,0.5)] border border-[#3b82f6]/30' : 'hover:bg-zinc-900'}`}
+                    >
+                        <FlaskConical className={`w-4 h-4 ${potionMode === 'BLUE' ? 'text-[#60a5fa] drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]' : 'text-zinc-600'}`} />
+                        <span className={`text-xs font-extrabold tracking-[0.2em] ${potionMode === 'BLUE' ? 'text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]' : 'text-zinc-500'}`}>BLUE POTION</span>
+                    </button>
+                    <button
+                        onClick={() => setPotionMode('RED')}
+                        className={`flex items-center justify-center gap-1.5 px-6 py-2 rounded-full transition-all duration-500 ease-out flex-shrink-0 ${potionMode === 'RED' ? 'bg-[#881337] shadow-[0_0_20px_rgba(136,19,55,0.5)] border border-[#f43f5e]/30' : 'hover:bg-zinc-900'}`}
+                    >
+                        <FlaskConical className={`w-4 h-4 ${potionMode === 'RED' ? 'text-[#fb7185] drop-shadow-[0_0_5px_rgba(251,113,133,0.8)]' : 'text-zinc-600'}`} />
+                        <span className={`text-xs font-extrabold tracking-[0.2em] ${potionMode === 'RED' ? 'text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]' : 'text-zinc-500'}`}>RED POTION</span>
+                    </button>
+                </div>
+                {potionMode === 'RED' && <p className="text-xs text-rose-400 font-medium animate-pulse">현재 레드 포션(전술 모드)이 선택되었습니다.</p>}
+                {potionMode === 'BLUE' && <p className="text-xs text-blue-400 font-medium animate-pulse">현재 블루 포션(안전 자본)이 선택되었습니다.</p>}
             </div>,
             title: t('guide.step2_title'),
             desc: t('guide.step2_desc'),
-            color: "from-emerald-500/20 to-indigo-500/20"
+            color: "from-blue-500/20 to-rose-500/20",
+            noIconBg: true
         },
         {
             icon: <div className="relative">
@@ -121,7 +139,7 @@ export const BeginnerGuide = () => {
                                 transition={{ duration: 0.2 }}
                                 className="flex flex-col items-center gap-6"
                             >
-                                <div className="p-6 rounded-full bg-zinc-900/50 border border-zinc-800 shadow-2xl">
+                                <div className={currentStep.noIconBg ? "w-full" : "p-6 rounded-full bg-zinc-900/50 border border-zinc-800 shadow-2xl"}>
                                     {currentStep.icon}
                                 </div>
                                 <div className="space-y-2">

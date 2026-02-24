@@ -12,7 +12,7 @@ const corsHandler = cors({ origin: true });
 
 export const binance_keys = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
-        if (req.method !== 'POST') {
+        if (req.method !== 'POST' && req.method !== 'DELETE') {
             res.status(405).send('Method Not Allowed');
             return;
         }
@@ -27,6 +27,17 @@ export const binance_keys = functions.https.onRequest((req, res) => {
             const idToken = authHeader.split('Bearer ')[1];
             const decodedToken = await auth.verifyIdToken(idToken);
             const uid = decodedToken.uid;
+
+            if (req.method === 'DELETE') {
+                await db.collection('users').doc(uid).update({
+                    binanceApiKey: admin.firestore.FieldValue.delete(),
+                    binanceApiSecretEncrypted: admin.firestore.FieldValue.delete(),
+                    apiConnected: false,
+                    updatedAt: new Date().toISOString()
+                });
+                res.status(200).json({ success: true, message: 'Keys deleted' });
+                return;
+            }
 
             const { apiKey, apiSecret } = req.body;
 

@@ -26,6 +26,7 @@ export interface AnalysisResult {
     actionGrade?: 'S' | 'A' | 'B' | 'C' | 'F'; // (v5.0)
     riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
     atr: number;
+    currentPrice?: number;
     recommendedSize: number; // Percentage 0-100
     isCapped: boolean; // True if Safety Cap applied
     recommendedLeverage: number;
@@ -367,23 +368,23 @@ export const AnalysisEngine = {
         // ------------------------------------
 
         // 5. Position Sizing & Safety Cap (v2.0)
-        // Kelly Proxy: (WinRate - 50) * 2. 
-        // Example: 65% win rate -> (15) * 2 = 30% Kelly.
-        // Safety Cap: Min(Kelly, 20%)
-
+        // HP1 Proxy: (WinRate - 50) * 2. 
+        // Example: 65% win rate -> (15) * 2 = 30% HP1.
+        // Safety Cap: Min(HP1, 20%)
         let winRateProxy = direction === 'LONG' ? bullishProb : direction === 'SHORT' ? bearishProb : 50;
-        let kellySize = 0;
+        let hp1Size = 0;
 
-        if (direction !== 'NEUTRAL') {
-            kellySize = (winRateProxy - 50) * 2; // Simple Kelly-like scaler
+        if (winRateProxy > 50) {
+            hp1Size = (winRateProxy - 50) * 2; // Simple HP1-like scaler
         }
 
         // Apply Safety Cap (Naval's Law) - Max 20%
-        const SAFETY_CAP = 20;
-        let recommendedSize = Math.min(kellySize, SAFETY_CAP);
-        recommendedSize = Math.max(0, recommendedSize); // No negative size
+        const SAFETY_CAP = 20; // 20% max size
+        let recommendedSize = Math.min(hp1Size, SAFETY_CAP);
+        recommendedSize = Math.max(0, recommendedSize);
 
-        const isCapped = kellySize > SAFETY_CAP;
+        const isPositiveEdge = hp1Size > 0;
+        const isCapped = hp1Size > SAFETY_CAP;
 
         // Leverage
         const slDistPercent = (atr * 2) / currentPrice;
@@ -484,7 +485,7 @@ export const AnalysisEngine = {
         // Populate Details
         details['1h'] = { rsi, ema20, ema50, ema200, trend: trendScore > 50 ? 'BULLISH' : 'BEARISH' };
 
-        // 8. Plain English Translator (Kelly v3.0) & Action Grade (v5.0)
+        // 8. Plain English Translator (HP1 v3.0) & Action Grade (v5.0)
         let reasoning_plain = "";
         let actionGrade: 'S' | 'A' | 'B' | 'C' | 'F' = 'F';
 
@@ -561,7 +562,7 @@ export const AnalysisEngine = {
         signal: AnalysisResult,
         balance: number,
         currentPrice: number,
-        mode: 'CAPITAL' | 'TACTICAL' = 'CAPITAL'
+        mode: 'BLUE' | 'RED' = 'BLUE'
     ): { margin: number; leverage: number; sl: number; tp: number; reason: string; isPyramidEligible?: boolean } => {
 
         if (signal.actionGrade === 'F') {
@@ -590,13 +591,13 @@ export const AnalysisEngine = {
         // Leverage based on confidence
         let leverage = isHighConviction ? 5 : (signal.actionGrade === 'A' ? 3 : 2); // Aggressive 5x for S-Grade
 
-        if (mode === 'TACTICAL') {
+        if (mode === 'RED') {
             leverage = 1; // Training wheels
         }
 
         // Allowed Max Loss based on Live Balance
         // [Phase 16] 2.0% for S-Grade Capital, else 1.5%
-        let maxRiskPct = mode === 'CAPITAL' ? (isHighConviction ? 0.020 : 0.015) : 0.005;
+        let maxRiskPct = mode === 'BLUE' ? (isHighConviction ? 0.020 : 0.015) : 0.005;
         const maxLossUSDT = balance * maxRiskPct;
 
         // Position Size ($) to hit exact max loss at SL

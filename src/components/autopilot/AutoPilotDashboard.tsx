@@ -132,7 +132,7 @@ export const AutoPilotDashboard = () => {
                 </div>
 
                 {(!hasConsented || !hasApiKey) ? (
-                    tier === 'inner_circle' ? (
+                    tier === 'PRO' ? (
                         <Button
                             id="autopilot-setup-btn"
                             onClick={() => setIsConsentOpen(true)}
