@@ -27,29 +27,52 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'API Keys not configured.' }, { status: 404 });
         }
 
-        // Initialize CCXT for Binance USD-M Futures
+        // Initialize CCXT for Binance
         const exchange = new ccxt.binance({
             apiKey: apiKey,
             secret: apiSecret,
             enableRateLimit: true,
-            options: {
-                defaultType: 'future', // USD-M Futures
-            },
         });
 
         // 🚨 VERY IMPORTANT: We only FETCH balance. NO execution. 🚨
-        const balanceResponse = await exchange.fetchBalance({ type: 'future' });
-
-        // Safely extract USDT total balance
         let usdtBalance = 0;
-        if (balanceResponse && balanceResponse.USDT) {
-            usdtBalance = balanceResponse.USDT.total || 0;
-        } else if (balanceResponse && balanceResponse.info && balanceResponse.info.assets) {
-            // Fallback for raw binance response
-            const usdtAsset = balanceResponse.info.assets.find((a: any) => a.asset === 'USDT');
-            if (usdtAsset) {
-                usdtBalance = parseFloat(usdtAsset.marginBalance || usdtAsset.walletBalance || '0');
+
+        // Helper to extract USDT from CCXT balance object
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const extractUsdt = (bal: any) => {
+            if (!bal) return 0;
+            if (bal.USDT) return bal.USDT.total || 0;
+            if (bal.info && bal.info.assets) {
+                // Fallback for raw binance futures response
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const usdtAsset = bal.info.assets.find((a: any) => a.asset === 'USDT');
+                if (usdtAsset) {
+                    return parseFloat(usdtAsset.marginBalance || usdtAsset.walletBalance || '0');
+                }
             }
+            if (bal.info && bal.info.balances) {
+                // Fallback for raw binance spot response
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const usdtAsset = bal.info.balances.find((a: any) => a.asset === 'USDT');
+                if (usdtAsset) {
+                    return parseFloat(usdtAsset.free || '0') + parseFloat(usdtAsset.locked || '0');
+                }
+            }
+            return 0;
+        };
+
+        try {
+            const spotBalance = await exchange.fetchBalance({ type: 'spot' });
+            usdtBalance += extractUsdt(spotBalance);
+        } catch (e) {
+            console.warn("Binance Spot Balance fetch warning:", e);
+        }
+
+        try {
+            const futureBalance = await exchange.fetchBalance({ type: 'future' });
+            usdtBalance += extractUsdt(futureBalance);
+        } catch (e) {
+            console.warn("Binance Future Balance fetch warning:", e);
         }
 
         return NextResponse.json({

@@ -162,7 +162,7 @@ export const RedPotionArena = () => {
         const SIMULATIONS = 1000;
         const TRADES_PER_SIM = 100;
         let ruins = 0;
-        let totalReturnPercent = 0;
+        const endingBalances: number[] = [];
 
         for (let i = 0; i < SIMULATIONS; i++) {
             let simBalance = 1.0; // Starting at 100% capacity
@@ -178,15 +178,20 @@ export const RedPotionArena = () => {
 
                 if (simBalance <= 0.1) { // 90% drawdown considered ruin
                     ruined = true;
+                    // Keep dropping the balance to show ruin impact on median
+                    simBalance = 0;
                     break;
                 }
             }
             if (ruined) ruins++;
-            totalReturnPercent += (simBalance - 1.0);
+            endingBalances.push(simBalance);
         }
 
+        endingBalances.sort((a, b) => a - b);
+        const medianBalance = endingBalances[Math.floor(SIMULATIONS / 2)];
+
         setRorResult((ruins / SIMULATIONS) * 100);
-        setExpectedReturn((totalReturnPercent / SIMULATIONS) * 100);
+        setExpectedReturn((medianBalance - 1.0) * 100);
 
         // Generate 6 months growth curve data for chart
         const baseEv = masterSignal && netEv > 0 ? netEv : 0.1;
@@ -229,7 +234,7 @@ export const RedPotionArena = () => {
         setNoEdgeWarning(false);
 
         // Fetching ONE Broadcasted Master Signal (No individual processing)
-        const signal = await mockProvider.generateMasterSignal(undefined as any);
+        const signal = await mockProvider.generateMasterSignal();
         setMasterSignal(signal);
     };
 

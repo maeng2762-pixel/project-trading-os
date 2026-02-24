@@ -35,7 +35,8 @@ export class MockBroadcastProvider implements AIProvider {
         console.log('[Mock AI] Initialized broadcast provider.');
     }
 
-    async generateMasterSignal(): Promise<MasterSignal> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async generateMasterSignal(marketData?: unknown): Promise<MasterSignal> {
         // Simulates server taking 15 minutes to process, but returning instantly here for UX
         const isLong = Math.random() > 0.5;
         // Generate realistic but aggressive R:R
