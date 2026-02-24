@@ -100,11 +100,31 @@ export default function Home() {
     };
     runSentinel();
 
-    // Polling Analysis every 1 minute
     const interval = setInterval(runSentinel, 60000);
     return () => clearInterval(interval);
 
   }, []);
+
+  // Fetch Binance Balance
+  useEffect(() => {
+    if (user && apiConnected) {
+      user.getIdToken().then((token: string) => {
+        fetch('/api/binance/balance', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.liveBalance !== undefined) {
+              setBalance(data.liveBalance);
+            }
+          })
+          .catch(err => console.error("Failed to fetch balance:", err));
+      });
+    }
+  }, [user, apiConnected, setBalance]);
 
   // ... (Admin code same) ...
 
