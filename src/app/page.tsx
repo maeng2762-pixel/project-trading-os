@@ -119,9 +119,15 @@ export default function Home() {
           .then(data => {
             if (data.success && data.liveBalance !== undefined) {
               setBalance(data.liveBalance);
+              // Update sync status locally if needed but no setter exists
+            } else if (!data.success && data.error) {
+              console.error("Balance fetch error:", data.error);
+              alert(`바이낸스 동기화 실패: ${data.error}\n\n도움말: API 키의 IP 제한 옵션이 해제되어 있는지, 혹은 브라우저 확장프로그램(VPN, Adblock 등)이 차단하고 있는지 확인해주세요.`);
             }
           })
-          .catch(err => console.error("Failed to fetch balance:", err));
+          .catch(err => {
+            console.error("Failed to fetch balance:", err);
+          });
       });
     }
   }, [user, apiConnected, setBalance]);
