@@ -35,6 +35,10 @@ const DotPlotGraph = ({ winRate }: { winRate: number }) => {
     );
 };
 
+import { MasterSignal, MockBroadcastProvider } from '@/lib/ai/provider';
+
+const mockProvider = new MockBroadcastProvider();
+
 export const RedPotionArena = () => {
     const { balance, liveBalance, apiConnected, setPotionMode } = useTradingStore();
     const currentSeed = apiConnected ? liveBalance : balance;
@@ -49,24 +53,27 @@ export const RedPotionArena = () => {
     const [isLocked, setIsLocked] = useState(false);
     const [allocationPercent, setAllocationPercent] = useState(5); // Default 5%
 
-    // EV Call State
-    const [aiCall, setAiCall] = useState<{
-        entry: number;
-        target: number;
-        sl: number;
-        prob: number;
-        rr: number;
-        ev: number;
-        grade: 'S' | 'A' | 'B' | 'NONE';
-        active: boolean;
-        breakdown: {
-            winRate: number;
-            avgRr: number;
-            sampleSize: number;
-            atrWeight: number;
-            confidence: number;
-        };
-    } | null>(null);
+    // v17.0 Master Broadcast State
+    const [masterSignal, setMasterSignal] = useState<MasterSignal | null>(null);
+
+    // Dynamic Net Values (Calculated by Client)
+    const [netVals, setNetVals] = useState({
+        entry: 0,
+        sl: 0,
+        target: 0,
+        netSlPct: 0,
+        netTargetPct: 0,
+        netRr: 0,
+        netEv: 0,
+    });
+
+    const [isSysBlocked, setIsSysBlocked] = useState(false);
+    const feeConfig = {
+        maker: 0.0004, // Typical exchange fee
+        taker: 0.0004,
+        slippage: 0.0005,
+    };
+    const totalCost = feeConfig.maker + feeConfig.taker + feeConfig.slippage; // 0.0013 (0.13%)
 
     // Pre-Trade Check State
     const [showPreTrade, setShowPreTrade] = useState(false);
@@ -82,28 +89,69 @@ export const RedPotionArena = () => {
     const [calculatedLeverage, setCalculatedLeverage] = useState<number>(1);
 
     useEffect(() => {
+        // v17 Client-side Net Calculation Engine
+        if (!masterSignal) return;
+
+        const currentPrice = 65000 + (Math.random() * 1000 - 500); // Mock current oracle price
+        const entryPrice = Math.round(currentPrice);
+
+        let grossTargetPrice = 0;
+        let grossSlPrice = 0;
+
+        if (masterSignal.direction === 'LONG') {
+            grossTargetPrice = entryPrice * (1 + (masterSignal.baseTargetPct / 100));
+            grossSlPrice = entryPrice * (1 - (masterSignal.baseStopLossPct / 100));
+        } else {
+            grossTargetPrice = entryPrice * (1 - (masterSignal.baseTargetPct / 100));
+            grossSlPrice = entryPrice * (1 + (masterSignal.baseStopLossPct / 100));
+        }
+
+        const netTargetPct = masterSignal.baseTargetPct - (totalCost * 100);
+        const netSlPct = masterSignal.baseStopLossPct + (totalCost * 100);
+        const netRr = netTargetPct > 0 ? netTargetPct / netSlPct : 0;
+
+        // Assume 50% baseline win rate for master signals + slight edge from confidence
+        const mockWinRate = 0.50 + ((masterSignal.confidenceScore - 50) / 400);
+        const mockLossRate = 1 - mockWinRate;
+        const netEv = (mockWinRate * netRr) - (mockLossRate * 1);
+
+        setNetVals({
+            entry: entryPrice,
+            target: Math.round(grossTargetPrice),
+            sl: Math.round(grossSlPrice),
+            netTargetPct: Number(netTargetPct.toFixed(2)),
+            netSlPct: Number(netSlPct.toFixed(2)),
+            netRr: Number(netRr.toFixed(2)),
+            netEv: Number(netEv.toFixed(2)),
+        });
+
+        // Client Side Blocking Logic (Total Cost x 3 constraint)
+        const minProfitThreshold = (totalCost * 100) * 3;
+        if (netTargetPct < minProfitThreshold || netEv < 0.3) {
+            setIsSysBlocked(true);
+        } else {
+            setIsSysBlocked(false);
+        }
+
         // Real-time Monte Carlo ROR Engine
-        const winRate = aiCall ? aiCall.breakdown.winRate / 100 : 0.4;
-        const rr = aiCall ? aiCall.rr : 2.0;
+        const winRate = mockWinRate;
+        const rr = netRr;
         const riskAmount = allocationPercent / 100;
 
         // Auto Leverage Calculation
         let sysLeverage = 1;
 
-        if (aiCall) {
-            const stopDistance = Math.abs(aiCall.entry - aiCall.sl);
-            const stopLossPct = (stopDistance / aiCall.entry) * 100;
-            sysLeverage = stopLossPct > 0 ? allocationPercent / stopLossPct : 1;
+        const stopLossPct = netSlPct;
+        sysLeverage = stopLossPct > 0 ? allocationPercent / stopLossPct : 1;
 
-            // EV-based Lockdown (0.3R constraint overrides all)
-            if (aiCall.ev < 0.3) {
-                sysLeverage = 1;
-            } else {
-                // Hard Cap 15x
-                if (sysLeverage > 15) sysLeverage = 15;
-                // Loss Penalty (-50% allowance on 2 losses)
-                if (losses >= 2) sysLeverage = sysLeverage * 0.5;
-            }
+        // EV-based Lockdown (0.3R constraint overrides all)
+        if (netEv < 0.3) {
+            sysLeverage = 1;
+        } else {
+            // Hard Cap 15x
+            if (sysLeverage > 15) sysLeverage = 15;
+            // Loss Penalty (-50% allowance on 2 losses)
+            if (losses >= 2) sysLeverage = sysLeverage * 0.5;
         }
         setCalculatedLeverage(Number(sysLeverage.toFixed(1)));
 
@@ -141,7 +189,7 @@ export const RedPotionArena = () => {
         setExpectedReturn((totalReturnPercent / SIMULATIONS) * 100);
 
         // Generate 6 months growth curve data for chart
-        const baseEv = aiCall ? aiCall.ev : 0.1;
+        const baseEv = masterSignal && netEv > 0 ? netEv : 0.1;
         const startBalance = currentSeed;
         let currentBalance = startBalance;
 
@@ -158,7 +206,7 @@ export const RedPotionArena = () => {
             newData.push({ month: `M+${i}`, balance: Math.round(currentBalance) });
         }
         setMonteCarloData(newData);
-    }, [aiCall, allocationPercent, currentSeed]);
+    }, [masterSignal, allocationPercent, currentSeed, losses, isSysBlocked]);
 
     // No Edge Warning State
     const [noEdgeWarning, setNoEdgeWarning] = useState(false);
@@ -176,75 +224,17 @@ export const RedPotionArena = () => {
         }
     }, []);
 
-    const generateCall = () => {
+    const fetchMasterSignal = async () => {
         if (ammo <= 0 || isLocked) return;
         setNoEdgeWarning(false);
 
-        // Simulate AI call generation with random values to demonstrate EV Engine
-        const basePrice = 65000 + (Math.random() * 1000 - 500);
-        const isLong = Math.random() > 0.5;
-
-        // Random R:R between 1.0 and 4.0
-        const randomRR = 1.0 + Math.random() * 3.0; // Expected R:R
-        const stopDistance = basePrice * 0.01; // 1% stop distance
-        const targetDistance = stopDistance * randomRR;
-
-        const entry = Math.round(basePrice);
-        const sl = Math.round(isLong ? entry - stopDistance : entry + stopDistance);
-        const target = Math.round(isLong ? entry + targetDistance : entry - targetDistance);
-
-        // Win probability inversely proportional to R:R somewhat, but with an edge
-        // A 1:2 RR might have a 45% win rate, 1:3 might have 35% win rate
-        const prob = Math.round(50 - (randomRR * 5) + (Math.random() * 10 - 5));
-        const winProb = Math.max(10, Math.min(90, prob)) / 100;
-        const lossProb = 1 - winProb;
-
-        // EV = (WinRate * ExpectedProfitR) - (LossRate * 1R)
-        // Adjust EV slightly based on mock ATR weight
-        const atrWeight = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-        const rawExpectedValue = (winProb * randomRR) - (lossProb * 1.0);
-        const expectedValue = rawExpectedValue * (atrWeight > 1.0 ? 0.9 : 1.1); // Penalize high volatility
-
-        const sampleSize = Math.floor(20 + Math.random() * 150); // 20 to 170
-
-        // Grade assignment based on new transparent rules
-        let grade: 'S' | 'A' | 'B' | 'NONE' = 'NONE';
-
-        if (expectedValue >= 0.6 && sampleSize >= 100 && randomRR >= 2.0) {
-            grade = 'S';
-        } else if (expectedValue >= 0.3 && sampleSize >= 50 && randomRR >= 1.8) {
-            grade = 'A';
-        } else if (expectedValue >= 0 && sampleSize >= 20 && randomRR >= 1.5) {
-            grade = 'B';
-        } else {
-            setNoEdgeWarning(true);
-            setAiCall(null);
-            return;
-        }
-
-        const confidence = Math.min(99, Math.max(10, Math.round(winProb * 100 * (sampleSize / 100) * (3 / randomRR))));
-
-        setAiCall({
-            entry,
-            target,
-            sl,
-            prob: Math.round(winProb * 100),
-            rr: Number(randomRR.toFixed(1)),
-            ev: Number(expectedValue.toFixed(2)),
-            grade,
-            active: true,
-            breakdown: {
-                winRate: Math.round(winProb * 100),
-                avgRr: Number(randomRR.toFixed(1)),
-                sampleSize,
-                atrWeight: Number(atrWeight.toFixed(2)),
-                confidence
-            }
-        });
+        // Fetching ONE Broadcasted Master Signal (No individual processing)
+        const signal = await mockProvider.generateMasterSignal(undefined as any);
+        setMasterSignal(signal);
     };
 
     const handlePreTradeExecute = () => {
-        if (!aiCall) return;
+        if (!masterSignal || isSysBlocked) return;
         setShowPreTrade(true);
     };
 
@@ -252,23 +242,21 @@ export const RedPotionArena = () => {
         if (mentalScore < 40) {
             alert("⚠️ 리스크 과열 상태: 오늘 컨디션 점수가 낮아 진입이 강제 차단됩니다.");
             setShowPreTrade(false);
-            setAiCall(null);
+            setMasterSignal(null);
             return;
         }
         setShowPreTrade(false);
         // ... proceeding to trade result mockup
-        const isWin = Math.random() < (aiCall!.breakdown.winRate / 100);
+        const isWin = Math.random() < 0.5; // 50/50 for mock
         executeTrade(isWin ? 'WIN' : 'LOSS');
     };
 
     const executeTrade = (result: 'WIN' | 'LOSS') => {
-        if (!aiCall) return;
+        if (!masterSignal) return;
 
-        // Ammo Penalty for B Grade or below
-        const ammoCost = (aiCall.grade === 'B' || aiCall.grade === 'NONE') ? 2 : 1;
-        setAmmo(prev => Math.max(0, prev - ammoCost));
+        setAmmo(prev => Math.max(0, prev - 1));
 
-        setAiCall(null);
+        setMasterSignal(null);
 
         if (result === 'LOSS') {
             const newLosses = losses + 1;
@@ -324,8 +312,8 @@ export const RedPotionArena = () => {
                 {/* Neon Red Background Accents */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 blur-[100px] rounded-full mix-blend-screen pointer-events-none"></div>
 
-                {/* Visual indicator for S-Class grade fire effect backdrop */}
-                {aiCall?.grade === 'S' && (
+                {/* Visual indicator for Target/Stop loss effect backdrop */}
+                {masterSignal && netVals.netRr >= 6 && (
                     <div className="absolute inset-0 bg-orange-600/5 blur-[120px] rounded-full mix-blend-color-dodge pointer-events-none transition-opacity duration-1000"></div>
                 )}
 
@@ -475,7 +463,7 @@ export const RedPotionArena = () => {
                                     <div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-zinc-800/50">
                                         <span className="text-xs text-zinc-400 font-bold bg-zinc-900 px-2 py-1 rounded border border-zinc-700">⚙️ 시스템 계산 레버리지</span>
                                         <span className={`text-sm font-mono font-black ${calculatedLeverage >= 10 ? 'text-rose-500 animate-pulse drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]' : (calculatedLeverage > 5 ? 'text-amber-500' : 'text-blue-500')}`}>
-                                            {aiCall ? `${calculatedLeverage}x` : '대기중'}
+                                            {masterSignal ? `${calculatedLeverage}x` : '대기중'}
                                         </span>
                                     </div>
 
@@ -491,83 +479,106 @@ export const RedPotionArena = () => {
 
                         {/* Tactical Output Panel */}
                         <div className="flex flex-col justify-center">
-                            {!aiCall ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-rose-900/30 rounded-xl bg-black/20">
-                                    <Zap className="w-12 h-12 text-zinc-700 mb-4" />
-                                    <h3 className="text-lg font-bold text-zinc-400 mb-2">훈련장 스탠바이</h3>
-                                    <p className="text-xs text-zinc-600 mb-6">수학적 엣지(Edge)가 확인된 셋업만 스캔합니다.</p>
+                            {!masterSignal ? (
+                                <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-rose-900/30 rounded-xl bg-black/20 relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-rose-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-700 pointer-events-none"></div>
+                                    <Zap className="w-12 h-12 text-zinc-700 mb-4 group-hover:text-rose-500 transition-colors duration-500" />
+                                    <h3 className="text-lg font-bold text-zinc-400 mb-2 font-mono tracking-widest uppercase">Zero Marginal Cost Sync</h3>
+                                    <p className="text-[10px] text-zinc-600 mb-6 uppercase tracking-wider font-bold">1 Center Brain ➠ BroadCasting</p>
 
                                     {noEdgeWarning && (
                                         <div className="w-full bg-amber-950/30 border border-amber-900/50 text-amber-500 text-xs py-3 px-4 rounded-lg mb-4 flex items-center justify-center gap-2 animate-pulse">
-                                            <ShieldAlert className="w-4 h-4" /> ⚠️ 관망이 최적의 전술입니다. (No Edge Detected)
+                                            <ShieldAlert className="w-4 h-4" /> ⚠️ 관망 대기: 중앙 네트워크에서 엣지 셋업을 탐지하지 못했습니다.
                                         </div>
                                     )}
 
                                     <Button
-                                        onClick={generateCall}
+                                        onClick={fetchMasterSignal}
                                         disabled={ammo <= 0}
-                                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold tracking-widest uppercase transform transition hover:scale-105 w-full max-w-xs"
+                                        className="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs tracking-[0.2em] relative overflow-hidden group/btn w-full max-w-xs shadow-[0_0_20px_rgba(225,29,72,0.2)]"
                                     >
-                                        타겟 스캔 (Scan Edge)
+                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300 pointer-events-none"></div>
+                                        <span className="relative z-10 flex items-center gap-2">마스터 시그널 수신 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg></span>
                                     </Button>
+                                    <span className="text-[9px] text-zinc-600 mt-3 font-mono">APP-SIDE RENDERING REQUIRED</span>
                                 </div>
                             ) : (
                                 <div className="space-y-4 animate-in zoom-in-95 duration-500">
                                     {/* HUD Header */}
-                                    <div className={`p-4 rounded-xl border ${aiCall.grade === 'S' ? 'bg-orange-950/40 border-orange-600/50 shadow-[0_0_15px_rgba(234,88,12,0.2)]' : 'bg-black/50 border-zinc-800'}`}>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-2">
-                                                {aiCall.grade === 'S' && <Flame className="w-5 h-5 text-orange-500 animate-pulse" />}
-                                                <span className={`font-black tracking-widest uppercase text-sm ${aiCall.grade === 'S' ? 'text-orange-500' : 'text-amber-500'}`}>
-                                                    [전술 등급: {aiCall.grade}급]
-                                                </span>
-                                                {aiCall.rr >= 6 && (
-                                                    <span className="bg-amber-500/20 border border-amber-400 text-amber-500 font-black text-[9px] px-2 py-0.5 rounded uppercase tracking-wider shadow-[0_0_10px_rgba(245,158,11,0.5)]">
-                                                        💎 소액 자본가용 특수 엣지
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {aiCall.grade === 'S' && (
-                                                <span className="bg-orange-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-                                                    S-Class Tactic
-                                                </span>
+                                    <div className="p-4 rounded-xl border bg-black/50 border-zinc-800 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-1 opacity-20 hover:opacity-100 transition-opacity cursor-pointer">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+                                        </div>
+                                        <div className="flex flex-col items-center justify-center mb-4 pb-4 border-b border-zinc-800 relative z-10">
+                                            <span className="text-[9px] text-zinc-500 uppercase tracking-[0.3em] font-bold mb-1">SNIPER HUD - MASTER SYNC</span>
+                                            {masterSignal.direction === 'LONG' ? (
+                                                <div className="text-5xl font-black text-emerald-500 tracking-tighter drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2">
+                                                    <span className="text-3xl">🟢</span> LONG <span className="text-lg opacity-50 tracking-normal">(매수 우위)</span>
+                                                </div>
+                                            ) : (
+                                                <div className="text-5xl font-black text-rose-500 tracking-tighter drop-shadow-[0_0_20px_rgba(225,29,72,0.3)] flex items-center gap-2">
+                                                    <span className="text-3xl">🔴</span> SHORT <span className="text-lg opacity-50 tracking-normal">(매도 우위)</span>
+                                                </div>
                                             )}
                                         </div>
+                                        {netVals.netRr >= 6 && (
+                                            <div className="text-center bg-amber-500/10 border border-amber-400 text-amber-500 font-bold text-xs py-1.5 rounded mb-3 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                                                💎 소액 자본가용 특수 엣지 (R:R 압도적 구간)
+                                            </div>
+                                        )}
 
-                                        <div className="grid grid-cols-2 gap-4 mt-3">
-                                            <div>
-                                                <span className="text-[10px] text-zinc-500 uppercase block mb-0.5">수학적 기대값 (EV)</span>
-                                                <span className="font-mono text-emerald-400 text-lg font-bold">+{aiCall.ev}R</span>
+                                        <div className="grid grid-cols-2 gap-4 mt-1">
+                                            <div className="text-center bg-zinc-950/50 p-2 rounded">
+                                                <span className="text-[10px] text-zinc-500 uppercase block mb-0.5">NET 수학적 기대값 (EV)</span>
+                                                <span className={`font-mono text-lg font-black ${netVals.netEv >= 0.3 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                                                    +{netVals.netEv}R
+                                                </span>
                                             </div>
-                                            <div>
-                                                <span className="text-[10px] text-zinc-500 uppercase block mb-0.5">평균 수익폭 (Avg Profit)</span>
-                                                <span className="font-mono text-white text-lg font-bold">{aiCall.rr}R</span>
+                                            <div className="text-center bg-zinc-950/50 p-2 rounded">
+                                                <span className="text-[10px] text-zinc-500 uppercase block mb-0.5">NET 실질 손익비 (RR)</span>
+                                                <span className="font-mono text-zinc-300 text-lg font-black">{netVals.netRr}R</span>
                                             </div>
+                                        </div>
+
+                                        <div className="mt-3 text-[10px] text-zinc-400 text-center mx-auto bg-zinc-900 border border-zinc-800 py-1.5 px-3 rounded italic break-keep leading-relaxed inline-block">
+                                            "{masterSignal.narrative}"
                                         </div>
                                     </div>
 
-                                    {/* Price Targets */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-black/30 border border-zinc-800/80 p-3 rounded-lg text-center">
-                                            <span className="text-[10px] text-zinc-500 uppercase block mb-1">진입가 (Entry)</span>
-                                            <span className="text-lg font-mono text-white font-bold">{aiCall.entry}</span>
+                                    {/* Price Targets context calculated on CLIENT */}
+                                    <div className="grid grid-cols-2 gap-3 relative">
+                                        <div className="bg-black/30 border border-zinc-800/80 p-3 rounded-lg text-center relative overflow-hidden group/target">
+                                            <div className="absolute top-0 right-0 p-1 opacity-20"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg></div>
+                                            <span className="text-[10px] text-emerald-500/80 uppercase block mb-1 font-bold">1차 목표가 (Target)</span>
+                                            <span className="text-lg font-mono text-emerald-400 font-bold">{netVals.target}</span>
+                                            <div className="mt-1 text-[9px] text-zinc-500 font-mono tracking-tighter">
+                                                (수수료 제외 +{netVals.netTargetPct}% 실수익)
+                                            </div>
                                         </div>
-                                        <div className="bg-black/30 border border-zinc-800/80 p-3 rounded-lg text-center">
-                                            <span className="text-[10px] text-zinc-500 uppercase block mb-1">목표가 (Target)</span>
-                                            <span className="text-lg font-mono text-emerald-400 font-bold">{aiCall.target}</span>
+                                        <div className="col-span-2 md:col-span-1 bg-black/30 border border-rose-900/40 p-3 rounded-lg text-center relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-1 opacity-20 text-rose-500"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg></div>
+                                            <span className="text-[10px] text-rose-500 uppercase block mb-1 font-black tracking-widest drop-shadow-[0_0_5px_rgba(225,29,72,0.8)]">무효화 조건 (Stop Loss)</span>
+                                            <span className="text-lg font-mono text-rose-500 font-bold">{netVals.sl}</span>
+                                            <div className="mt-1 text-[9px] text-rose-400/80 font-mono tracking-tighter">
+                                                (수수료 포함 -{netVals.netSlPct}% 실손실)
+                                            </div>
                                         </div>
-                                        <div className="col-span-2 bg-rose-950/20 border border-rose-900/40 p-3 rounded-lg text-center">
-                                            <span className="text-[10px] text-rose-400 uppercase block mb-1 font-bold tracking-widest">
-                                                손절 = 무효화 조건 충족 (Invalidation)
-                                            </span>
-                                            <span className="text-lg font-mono text-rose-500 font-bold">{aiCall.sl}</span>
+                                        <div className="col-span-2 text-center pt-2">
+                                            <span className="text-[10px] text-zinc-600 font-mono tracking-widest uppercase">추정 로컬 시세 기준 진입가: {netVals.entry} USDT</span>
                                         </div>
                                     </div>
 
                                     {/* Dot Plot Edge Visualizer */}
-                                    <DotPlotGraph winRate={aiCall.prob} />
+                                    <DotPlotGraph winRate={masterSignal.confidenceScore} />
 
                                     <div className="flex flex-col gap-2 pt-4">
+                                        {isSysBlocked && (
+                                            <div className="mb-2 p-3 bg-amber-950/40 border border-amber-600/50 rounded-lg text-center animate-pulse">
+                                                <span className="text-amber-500 font-black text-xs tracking-widest flex justify-center items-center gap-2 uppercase">
+                                                    <Lock className="w-4 h-4" /> ⚠️ 수수료 기반 최소 엣지 한계치 미달 (진입 차단)
+                                                </span>
+                                            </div>
+                                        )}
                                         <div className="flex gap-3">
                                             <Button
                                                 onClick={() => executeTrade('LOSS')}
@@ -577,16 +588,16 @@ export const RedPotionArena = () => {
                                             </Button>
                                             <Button
                                                 onClick={handlePreTradeExecute}
-                                                disabled={aiCall.ev <= 0.3}
-                                                className={`flex-[2] h-12 font-black text-lg tracking-widest transition-all ${aiCall.ev <= 0.3 ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border-none' : 'bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]'}`}
+                                                disabled={isSysBlocked}
+                                                className={`flex-[2] h-12 font-black text-lg tracking-widest transition-all ${isSysBlocked ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border-none' : 'bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]'}`}
                                             >
-                                                {aiCall.ev <= 0.3 ? 'EV 미달 (차단)' : '참전 승인 (EXECUTE)'}
+                                                {isSysBlocked ? '관망 처리' : '참전 승인 (EXECUTE)'}
                                             </Button>
                                         </div>
-                                        {aiCall.ev > 0.3 && (
+                                        {!isSysBlocked && (
                                             <div className="text-center mt-1 animate-pulse">
                                                 <span className="text-[10px] text-zinc-500 font-mono tracking-tighter">
-                                                    이 전략을 무시할 경우 장기 기대손실: <span className="text-rose-500">-{aiCall.ev.toFixed(2)}R</span>
+                                                    이 전략을 무시할 경우 장기 기대손실: <span className="text-rose-500">-{netVals.netEv}R</span>
                                                 </span>
                                             </div>
                                         )}
