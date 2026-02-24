@@ -427,41 +427,48 @@ export const RedPotionArena = () => {
                                             <span className="text-xs font-bold text-rose-500 flex items-center gap-1">
                                                 <Flame className="w-3.5 h-3.5" /> ☠️ 파산(HP 0) 확률
                                             </span>
-                                            <span className={`font-mono text-lg font-black tracking-tighter ${calculatedLeverage >= 10 || rorResult >= 20 ? 'text-rose-500 animate-pulse drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]' : (rorResult >= 10 ? 'text-amber-500' : 'text-emerald-400')}`}>
-                                                {rorResult.toFixed(1)}%
+                                            <span className={`font-mono text-lg font-black tracking-tighter ${masterSignal && (calculatedLeverage >= 10 || rorResult >= 20) ? 'text-rose-500 animate-pulse drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]' : (masterSignal && rorResult >= 10 ? 'text-amber-500' : 'text-emerald-400')}`}>
+                                                {masterSignal ? `${rorResult.toFixed(1)}%` : '--%'}
                                             </span>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-3 mb-4">
                                             <div className="bg-zinc-900/80 p-2 rounded border border-zinc-800">
                                                 <div className="text-[9px] text-zinc-500 mb-1">3개월 기대수익 (MC)</div>
-                                                <div className={`text-sm font-mono font-bold ${expectedReturn >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
-                                                    {expectedReturn > 0 ? '+' : ''}{expectedReturn.toFixed(1)}%
+                                                <div className={`text-sm font-mono font-bold ${masterSignal && expectedReturn >= 0 ? 'text-emerald-400' : (masterSignal ? 'text-rose-500' : 'text-zinc-500')}`}>
+                                                    {masterSignal ? `${expectedReturn > 0 ? '+' : ''}${expectedReturn.toFixed(1)}%` : '--%'}
                                                 </div>
                                             </div>
                                             <div className="bg-zinc-900/80 p-2 rounded border border-zinc-800">
                                                 <div className="text-[9px] text-zinc-500 mb-1">30일 내 -20% 도달</div>
-                                                <div className="text-sm font-mono text-rose-400">
-                                                    {(allocationPercent * 1.8).toFixed(1)}%
+                                                <div className={`text-sm font-mono ${masterSignal ? 'text-rose-400' : 'text-zinc-500'}`}>
+                                                    {masterSignal ? `${(allocationPercent * 1.8).toFixed(1)}%` : '--%'}
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Compounding Growth Curve Graphic */}
-                                        <div className="h-20 w-full mt-2 border-t border-zinc-800/50 pt-2">
-                                            <div className="text-[9px] text-zinc-500 uppercase font-bold mb-1">6개월 복리 성장 곡선 (예측)</div>
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <LineChart data={monteCarloData}>
-                                                    <YAxis domain={['auto', 'auto']} hide />
-                                                    <Tooltip
-                                                        contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', fontSize: '10px' }}
-                                                        itemStyle={{ color: '#34d399' }}
-                                                        formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Balance']}
-                                                        labelStyle={{ color: '#a1a1aa' }}
-                                                    />
-                                                    <Line type="monotone" dataKey="balance" stroke="#34d399" strokeWidth={1.5} dot={false} />
-                                                </LineChart>
-                                            </ResponsiveContainer>
+                                        <div className="h-32 w-full mt-4 border-t border-zinc-800/50 pt-3 relative">
+                                            <div className="text-[9px] text-zinc-500 uppercase font-bold mb-2 absolute top-3 left-0 z-10">6개월 복리 성장 곡선 (예측)</div>
+                                            {!masterSignal && (
+                                                <div className="absolute inset-0 flex items-center justify-center text-xs text-zinc-600 font-mono mt-4">
+                                                    [시그널 대기중]
+                                                </div>
+                                            )}
+                                            {masterSignal && (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={monteCarloData} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
+                                                        <YAxis domain={['auto', 'auto']} hide />
+                                                        <Tooltip
+                                                            contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', fontSize: '10px' }}
+                                                            itemStyle={{ color: '#34d399' }}
+                                                            formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Balance']}
+                                                            labelStyle={{ color: '#a1a1aa' }}
+                                                        />
+                                                        <Line type="monotone" dataKey="balance" stroke="#34d399" strokeWidth={2} dot={false} />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            )}
                                         </div>
                                     </div>
 
