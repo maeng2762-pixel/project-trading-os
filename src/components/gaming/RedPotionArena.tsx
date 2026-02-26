@@ -594,6 +594,12 @@ export const RedPotionArena = () => {
                     <p className="text-zinc-300 font-bold max-w-md mx-auto leading-relaxed">
                         최대 허용 연패 초과로 자본이 파괴되었습니다. <br />
                         <span className="text-rose-400">시스템이 개입하여 레드포션 모드를 24시간 강제 봉인합니다.</span>
+                        <div className="mt-4 p-3 bg-indigo-950/30 border border-indigo-900/50 rounded-lg">
+                            <p className="text-indigo-300 text-[11px] font-medium">
+                                🛡️ VIP 계정({"'maeng2762@gmail.com'"})으로 로그인하시면 <br />
+                                모든 시스템 제한이 즉시 해제되며 무제한 사용이 가능합니다.
+                            </p>
+                        </div>
                         {losses >= 3 && (
                             <>
                                 <br />
