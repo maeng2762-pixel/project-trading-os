@@ -439,17 +439,18 @@ export const RedPotionArena = () => {
     const [isScanning, setIsScanning] = useState(false);
 
     useEffect(() => {
-        // Mock checking local storage for lock status
-        const lockTime = localStorage.getItem('redPotionLockTime');
-        if (lockTime) {
-            const timeDiff = Date.now() - Number(lockTime);
-            if (timeDiff < 24 * 60 * 60 * 1000) {
-                // Only lock if NOT VIP. Since isVip might be null initially as user loads,
-                // we'll check it in the rendering and effect as well.
-                if (!isVip) setIsLocked(true);
-            } else {
-                localStorage.removeItem('redPotionLockTime');
+        try {
+            const lockTime = localStorage.getItem('redPotionLockTime');
+            if (lockTime) {
+                const timeDiff = Date.now() - Number(lockTime);
+                if (timeDiff < 24 * 60 * 60 * 1000) {
+                    if (!isVip) setIsLocked(true);
+                } else {
+                    localStorage.removeItem('redPotionLockTime');
+                }
             }
+        } catch (error) {
+            console.warn("Failed to read lock state from local storage:", error);
         }
     }, [isVip]);
 
@@ -457,7 +458,11 @@ export const RedPotionArena = () => {
     useEffect(() => {
         if (isVip) {
             setIsLocked(false);
-            localStorage.removeItem('redPotionLockTime');
+            try {
+                localStorage.removeItem('redPotionLockTime');
+            } catch (error) {
+                console.warn("Failed to clear local storage lock:", error);
+            }
         }
     }, [isVip]);
 
@@ -571,7 +576,11 @@ export const RedPotionArena = () => {
                 // 3 losses = Ammo 0, Glitch, kick to blue
                 setAmmo(0);
                 setIsLocked(true);
-                localStorage.setItem('redPotionLockTime', Date.now().toString());
+                try {
+                    localStorage.setItem('redPotionLockTime', Date.now().toString());
+                } catch (error) {
+                    console.warn("Failed to save lock state to local storage:", error);
+                }
 
                 // Force Blue Mode transition
                 setTimeout(() => {
