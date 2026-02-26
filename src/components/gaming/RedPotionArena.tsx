@@ -100,7 +100,7 @@ const mockProvider = new MockBroadcastProvider();
 export const RedPotionArena = () => {
     const { balance, liveBalance, apiConnected, setPotionMode } = useTradingStore();
     const { user } = useAuthStore();
-    const isVip = user?.email?.toLowerCase().trim() === 'maeng2762@gmail.com';
+    const isVip = user && user.email ? user.email.toLowerCase().trim() === 'maeng2762@gmail.com' : false;
     const currentSeed = apiConnected ? liveBalance : balance;
 
     // Limits

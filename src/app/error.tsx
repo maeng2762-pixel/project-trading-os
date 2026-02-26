@@ -26,6 +26,8 @@ export default function Error({
             <p className="text-zinc-400 mb-8 max-w-md text-sm">
                 보안 정책에 따라 상세 오류 내역은 노출되지 않습니다. 관리자에게 문의하세요.
                 <br /><br />
+                Error Message: {error.message}
+                <br />
                 Error Digest: {error.digest || 'UNKNOWN'}
             </p>
             <button
