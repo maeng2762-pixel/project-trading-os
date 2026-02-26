@@ -100,7 +100,7 @@ const mockProvider = new MockBroadcastProvider();
 
 export const RedPotionArena = () => {
     const { balance, liveBalance, apiConnected, setPotionMode } = useTradingStore();
-    const { user } = useAuthStore();
+    const { user, loading } = useAuthStore();
     const isVip = user && user.email ? user.email.toLowerCase().trim() === 'maeng2762@gmail.com' : false;
     const currentSeed = apiConnected ? liveBalance : balance;
 
@@ -585,6 +585,14 @@ export const RedPotionArena = () => {
             setLosses(0);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="w-full min-h-[400px] flex items-center justify-center bg-zinc-950 rounded-xl mt-8">
+                <Activity className="w-8 h-8 text-rose-500 animate-pulse" />
+            </div>
+        );
+    }
 
     if (isLocked && !isVip && user) {
         return (

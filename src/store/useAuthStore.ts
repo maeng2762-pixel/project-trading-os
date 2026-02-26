@@ -44,20 +44,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: null });
     },
     init: () => {
-        // Handle redirect result to catch errors from the popup fallback
+        // Handle redirect result silently to avoid infinite alert loops on Safari/Mobile
         getRedirectResult(auth).catch((error) => {
             console.error("Redirect login result error:", error);
-            if (error.code === 'auth/unauthorized-domain') {
-                alert(`[관리자 권한 오류] Vercel 도메인 권한이 Firebase에 없습니다.\n\nFirebase 콘솔에 접속하여 Authentication -> Settings -> Authorized Domains 에 아래 주소를 추가해주세요:\n\n${window.location.hostname}`);
-            } else if (error.code === 'auth/internal-error') {
-                alert("로그인 세션을 가져올 수 없습니다. 사파리/크롬 설정에서 '크로스 사이트 추적 방지'를 해제해주세요.");
-            } else {
-                alert(`로그인 리디렉션 처리 중 오류: ${error.message}`);
-            }
         });
 
-        // Safe persistence setting on init
-        setPersistence(auth, browserLocalPersistence).catch(err => console.warn("Persistence failed", err));
+        // No need to call setPersistence here as it is handled in lib/firebase.ts initializeAuth
 
         const unsub = onAuthStateChanged(auth, async (user) => {
             if (user) {

@@ -75,7 +75,12 @@ export function LoginModal() {
                         </svg>
                         Continue with Google
                     </Button>
-                    <p className="text-xs text-center text-zinc-600">
+                    <p className="text-[10px] text-center text-zinc-600 bg-zinc-900/50 p-2 rounded border border-zinc-800/50">
+                        <b>💡 모바일/사파리 이용자 필수:</b><br />
+                        로그인 오류 발생 시 브라우저 설정에서 <br />
+                        <span className="text-indigo-400">"크로스 사이트 추적 방지"</span> 옵션을 해제해주세요.
+                    </p>
+                    <p className="text-[10px] text-center text-zinc-700">
                         By continuing, you agree to our Terms of Service & Privacy Policy.
                     </p>
                 </div>
