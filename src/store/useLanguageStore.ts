@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { translations, Language } from '@/lib/translations';
+import { safeStorage } from '@/lib/safeStorage';
 
 interface LanguageState {
     language: Language;
@@ -21,6 +22,7 @@ export const useLanguageStore = create<LanguageState>()(
         }),
         {
             name: 'language-storage',
+            storage: safeStorage,
         }
     )
 );

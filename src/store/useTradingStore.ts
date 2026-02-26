@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AnalysisResult, AnalysisEngine } from '@/lib/analysis';
+import { safeStorage } from '@/lib/safeStorage';
 
 export interface Position {
     id: string;
@@ -536,6 +537,7 @@ export const useTradingStore = create<TradingState>()(
                 consecutiveLosses: state.consecutiveLosses,
                 seasonId: state.seasonId
             }),
+            storage: safeStorage,
         }
     )
 );

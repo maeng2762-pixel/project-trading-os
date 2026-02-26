@@ -16,11 +16,15 @@ export const BeginnerGuide = () => {
 
     // Check localStorage on mount
     useEffect(() => {
-        const hasSeenGuide = localStorage.getItem('kelly_has_seen_guide_v1');
-        if (!hasSeenGuide) {
-            // Small delay to not overwhelm user immediately
-            const timer = setTimeout(() => setIsOpen(true), 1000);
-            return () => clearTimeout(timer);
+        try {
+            const hasSeenGuide = localStorage.getItem('kelly_has_seen_guide_v1');
+            if (!hasSeenGuide) {
+                // Small delay to not overwhelm user immediately
+                const timer = setTimeout(() => setIsOpen(true), 1000);
+                return () => clearTimeout(timer);
+            }
+        } catch (error) {
+            console.warn('[BeginnerGuide] localStorage read blocked.', error);
         }
     }, []);
 
@@ -35,7 +39,11 @@ export const BeginnerGuide = () => {
 
     const handleClose = () => {
         setIsOpen(false);
-        localStorage.setItem('kelly_has_seen_guide_v1', 'true');
+        try {
+            localStorage.setItem('kelly_has_seen_guide_v1', 'true');
+        } catch (error) {
+            console.warn('[BeginnerGuide] localStorage write blocked.', error);
+        }
     };
 
     const steps = [

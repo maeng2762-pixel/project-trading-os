@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { safeStorage } from '@/lib/safeStorage';
 
 interface NotificationState {
     isEnabled: boolean;
@@ -35,6 +36,7 @@ export const useNotificationStore = create<NotificationState>()(
         }),
         {
             name: 'hp1-notification-storage',
+            storage: safeStorage,
         }
     )
 );
