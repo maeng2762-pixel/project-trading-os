@@ -443,12 +443,22 @@ export const RedPotionArena = () => {
         if (lockTime) {
             const timeDiff = Date.now() - Number(lockTime);
             if (timeDiff < 24 * 60 * 60 * 1000) {
-                setIsLocked(true);
+                // Only lock if NOT VIP. Since isVip might be null initially as user loads,
+                // we'll check it in the rendering and effect as well.
+                if (!isVip) setIsLocked(true);
             } else {
                 localStorage.removeItem('redPotionLockTime');
             }
         }
-    }, []);
+    }, [isVip]);
+
+    // If VIP logs in, clear any existing locks
+    useEffect(() => {
+        if (isVip) {
+            setIsLocked(false);
+            localStorage.removeItem('redPotionLockTime');
+        }
+    }, [isVip]);
 
     const fetchMasterSignal = async (forced?: boolean) => {
         if (!isVip && ammo <= 0) return;
@@ -575,7 +585,7 @@ export const RedPotionArena = () => {
         }
     };
 
-    if (isLocked) {
+    if (isLocked && !isVip) {
         return (
             <div className={`w-full relative min-h-[400px] flex items-center justify-center border border-zinc-900 bg-zinc-950 rounded-xl overflow-hidden mt-8 grayscale ${losses >= 3 && 'animate-[pulse_0.1s_ease-in-out_infinite]'}`}>
                 <div className="absolute inset-0 bg-rose-950/80 flex flex-col items-center justify-center p-8 text-center backdrop-blur-md z-10 transition-colors">
