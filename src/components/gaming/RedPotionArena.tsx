@@ -6,6 +6,7 @@ import { Flame, Target, Crosshair, Skull, Lock, Zap, ShieldAlert, Activity } fro
 import { Button } from '@/components/ui/button';
 import { useTradingStore } from '@/store/useTradingStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { LoginModal } from '../auth/LoginModal';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Simple Dot Plot Component for the last 20 simulated trades
@@ -626,6 +627,17 @@ export const RedPotionArena = () => {
                 {/* Visual indicator for Target/Stop loss effect backdrop */}
                 {masterSignal && liveRr >= 6 && (
                     <div className="absolute inset-0 bg-orange-600/5 blur-[120px] rounded-full mix-blend-color-dodge pointer-events-none transition-opacity duration-1000"></div>
+                )}
+
+                {!user && (
+                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-8 text-center backdrop-blur-md bg-zinc-950/60 transition-all border border-zinc-900 rounded-xl">
+                        <Lock className="w-16 h-16 text-zinc-500 mb-4" />
+                        <h2 className="text-2xl font-black text-rose-500 tracking-widest uppercase mb-2">실전 훈련 엔진 봉인 상태</h2>
+                        <p className="text-zinc-300 font-bold max-w-md mx-auto leading-relaxed mb-6">
+                            로그인하여 인증된 사용자만 접근할 수 있는 최상위 구역입니다.
+                        </p>
+                        <LoginModal />
+                    </div>
                 )}
 
                 <CardHeader className="border-b border-rose-900/30 pb-4 relative z-10 flex flex-row items-center justify-between">
