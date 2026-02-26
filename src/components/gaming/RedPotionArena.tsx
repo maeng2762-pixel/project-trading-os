@@ -586,7 +586,7 @@ export const RedPotionArena = () => {
         }
     };
 
-    if (isLocked && !isVip) {
+    if (isLocked && !isVip && user) {
         return (
             <div className={`w-full relative min-h-[400px] flex items-center justify-center border border-zinc-900 bg-zinc-950 rounded-xl overflow-hidden mt-8 grayscale ${losses >= 3 && 'animate-[pulse_0.1s_ease-in-out_infinite]'}`}>
                 <div className="absolute inset-0 bg-rose-950/80 flex flex-col items-center justify-center p-8 text-center backdrop-blur-md z-10 transition-colors">
