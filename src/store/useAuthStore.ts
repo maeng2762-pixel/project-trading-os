@@ -52,30 +52,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await signOut(auth);
         set({ user: null });
     },
-    init: async () => {
+    init: () => {
         set({ loading: true });
 
-        // Explicitly set persistence
-        try {
-            await setPersistence(auth, browserLocalPersistence);
-        } catch (e) {
-            console.error("Persistence error:", e);
-        }
-
-        // Handle redirect result and WAIT for it to prevent flash of login screen/loops
-        try {
-            const result = await getRedirectResult(auth);
-            if (result?.user) {
-                // Successful redirect login
-                sessionStorage.removeItem('hp1_redirect_attempted');
+        // Non-blocking persistence and redirect check
+        (async () => {
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+            } catch (e) {
+                console.error("Persistence error:", e);
             }
-        } catch (error) {
-            console.error("Redirect result error:", error);
-            // Don't alert here to avoid annoying loops, just log it.
-        }
+
+            try {
+                const result = await getRedirectResult(auth);
+                if (result?.user) {
+                    sessionStorage.removeItem('hp1_redirect_attempted');
+                }
+            } catch (error: any) {
+                console.error("Redirect result error:", error);
+                if (error.code === 'auth/unauthorized-domain') {
+                    alert("이 도메인은 파이어베이스 인증이 허용되지 않았습니다. 관리 콘솔에서 도메인을 추가해주세요.");
+                }
+            }
+        })();
 
         // Background Silent Refresh Interval (48h support / refreshing token every 30m)
-        let tokenRefreshInterval: NodeJS.Timeout | null = null;
+        let tokenRefreshInterval: ReturnType<typeof setInterval> | null = null;
 
         const unsub = onAuthStateChanged(auth, async (user) => {
             if (user) {
