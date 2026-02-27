@@ -90,19 +90,7 @@ export const BeginnerGuide = () => {
             desc: t('guide.step_shield_desc'),
             color: "from-red-500/20 to-rose-500/20"
         },
-        {
-            icon: <div className="flex flex-col items-center gap-2">
-                <div className="text-4xl">🧠</div>
-                <div className="flex gap-1">
-                    <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 text-xs rounded border border-indigo-500/50">S</span>
-                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/50">A</span>
-                    <span className="px-2 py-0.5 bg-zinc-800 text-zinc-500 text-xs rounded border border-zinc-700">F</span>
-                </div>
-            </div>,
-            title: t('guide.step_brain_title'),
-            desc: t('guide.step_brain_desc'),
-            color: "from-purple-500/20 to-violet-500/20"
-        },
+
         {
             icon: <TrendingUp className="w-16 h-16 text-amber-400" />,
             title: t('guide.step3_title'),
