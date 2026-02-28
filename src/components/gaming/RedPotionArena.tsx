@@ -277,13 +277,13 @@ export const RedPotionArena = () => {
     // WebSocket Latency Monitor - Run regardless of signal
     useEffect(() => {
         const interval = setInterval(() => {
-            // Check if last update was more than 1000ms ago
-            if (lastWsUpdate > 0 && Date.now() - lastWsUpdate > 1000) {
+            // Check if last update was more than 3000ms ago (more lenient for mobile/poor signals)
+            if (lastWsUpdate > 0 && Date.now() - lastWsUpdate > 3000) {
                 setIsWsDelayed(true);
             } else {
                 setIsWsDelayed(false);
             }
-        }, 500);
+        }, 1000);
 
         return () => clearInterval(interval);
     }, [lastWsUpdate]);
@@ -348,8 +348,10 @@ export const RedPotionArena = () => {
         let outOfZone = false;
         if (masterSignal.direction === 'LONG') {
             if (livePrice > masterSignal.entryZoneMax) outOfZone = true;
+            if (livePrice < masterSignal.entryZoneMin) outOfZone = true;
         } else {
             if (livePrice < masterSignal.entryZoneMin) outOfZone = true;
+            if (livePrice > masterSignal.entryZoneMax) outOfZone = true;
         }
 
         setIsSniperLocked(outOfZone);
@@ -361,7 +363,7 @@ export const RedPotionArena = () => {
             setBlockReason('⚠️ 현재 시세 동기화 지연 중. 자본 보호를 위해 진입을 차단합니다.');
         } else if (outOfZone) {
             setIsSysBlocked(true);
-            setBlockReason('⚠️ 타점 이탈 (Target Missed): 가격이 Zone 안으로 돌아올 때까지 진입 차단.');
+            setBlockReason('🚨 현재 가격은 최적 진입 구간을 이탈했습니다. 기대 손익비가 붕괴되어 진입 시 장기 파산 위험이 높으므로 진입을 차단합니다. (ENTRY 존 대기)');
         } else if (netVals.netTargetPct < minProfitThreshold) {
             setIsSysBlocked(true);
             setBlockReason('⚠️ 수수료 기반 최소 엣지 한계치 미달 (진입 차단)');
@@ -370,14 +372,14 @@ export const RedPotionArena = () => {
             setBlockReason('⚠️ 현재가 기준 엣지 붕괴 (RR 1.5R 미만 진입 차단)');
         } else if (liveEv < 0.3) {
             setIsSysBlocked(true);
-            setBlockReason('⚠️ 기대수익값(EV) 0.3R 미달 진입 차단');
+            setBlockReason('⚠️ 기대수익값(EV) 0.3R 미달: 현재가 기준 엣지가 부족하여 진입을 차단합니다.');
         } else {
             setIsSysBlocked(false);
             setBlockReason('');
         }
 
         // Real-time Monte Carlo ROR Engine
-        const winRate = 0.50 + ((masterSignal.confidenceScore - 50) / 400);;
+        const winRate = masterSignal.metaWinRate !== undefined ? masterSignal.metaWinRate : 0.50 + ((masterSignal.confidenceScore - 50) / 400);
         const rr = liveRr > 0 ? liveRr : netVals.plannedRr;
         const riskAmount = allocationPercent / 100;
 
@@ -924,6 +926,11 @@ export const RedPotionArena = () => {
                                         </div>
                                         <div className="flex flex-col items-center justify-center mb-4 pb-4 border-b border-zinc-800 relative z-10">
                                             <span className="text-[9px] text-zinc-500 uppercase tracking-[0.3em] font-bold mb-1">SNIPER HUD - MASTER SYNC</span>
+                                            {masterSignal.sessionInfo && (
+                                                <div className="bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-400 px-3 py-1 rounded-full mb-3 flex items-center gap-1 shadow-inner">
+                                                    🌐 킬존 관측망 활성화: <strong className="text-purple-400">{masterSignal.sessionInfo}</strong>
+                                                </div>
+                                            )}
                                             {masterSignal.direction === 'LONG' ? (
                                                 <div className={`text-5xl font-black ${isLateEntry ? 'text-amber-500 animate-pulse' : 'text-emerald-500'} tracking-tighter drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2`}>
                                                     <span className="text-3xl">{isLateEntry ? '⚠️' : '🟢'}</span> LONG <span className="text-lg opacity-50 tracking-normal text-zinc-300">({isLateEntry ? 'Risk: 지각 진입' : '매수 우위'})</span>
@@ -971,7 +978,7 @@ export const RedPotionArena = () => {
                                         <div className="mt-4 mb-2">
                                             {isSysBlocked ? (
                                                 <div className="bg-rose-950/50 border border-rose-900/50 text-[10px] text-rose-400 p-3 rounded-lg shadow-lg text-center font-mono animate-pulse">
-                                                    🚨 <strong>경고:</strong> 현재 가격은 최적 진입 구간을 이탈했습니다. 기대 손익비가 붕괴되어 진입 시 장기 파산 위험이 매우 높습니다. 진입을 취소하십시오.
+                                                    {blockReason}
                                                 </div>
                                             ) : isLateEntry ? (
                                                 <div className="bg-amber-950/50 border border-amber-900/50 text-[10px] text-amber-400 p-3 rounded-lg shadow-lg text-center font-mono">
@@ -983,6 +990,24 @@ export const RedPotionArena = () => {
                                                 </div>
                                             )}
                                         </div>
+
+                                        {!isSysBlocked && masterSignal.apexNarrative && (
+                                            <div className="mt-2 text-left space-y-2 bg-black/40 p-3 mb-4 border border-zinc-800 shadow-inner rounded relative overflow-hidden text-[10px] font-mono leading-relaxed">
+                                                <div className="absolute top-0 right-0 p-1 opacity-20"><Target className="w-12 h-12" /></div>
+                                                <div className="flex items-start gap-2 text-blue-400">
+                                                    <span className="shrink-0 mt-0.5"><Crosshair className="w-3 h-3" /></span>
+                                                    <span>{masterSignal.apexNarrative.entryHint}</span>
+                                                </div>
+                                                <div className="flex items-start gap-2 text-emerald-400">
+                                                    <span className="shrink-0 mt-0.5"><Target className="w-3 h-3" /></span>
+                                                    <span>{masterSignal.apexNarrative.targetHint}</span>
+                                                </div>
+                                                <div className="flex items-start gap-2 text-purple-400">
+                                                    <span className="shrink-0 mt-0.5"><ShieldAlert className="w-3 h-3" /></span>
+                                                    <span>{masterSignal.apexNarrative.routingHint}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Real-time Edge Scanner Indicator */}
@@ -1038,7 +1063,14 @@ export const RedPotionArena = () => {
                                     </div>
 
                                     {/* Dot Plot Edge Visualizer */}
-                                    <DotPlotGraph winRate={masterSignal.confidenceScore} />
+                                    <DotPlotGraph winRate={masterSignal.metaWinRate !== undefined ? masterSignal.metaWinRate * 100 : masterSignal.confidenceScore} />
+                                    {masterSignal.metaWinRate !== undefined && (
+                                        <div className="text-center mt-1">
+                                            <span className="text-[10px] text-zinc-500 font-mono tracking-tighter">
+                                                ML 2차 100회 메타 레이블링 백테스트 검증 승률: <strong className="text-emerald-400 text-xs">{(masterSignal.metaWinRate * 100).toFixed(1)}%</strong>
+                                            </span>
+                                        </div>
+                                    )}
 
                                     <div className="flex flex-col gap-2 pt-6">
                                         {refundWarning && (
