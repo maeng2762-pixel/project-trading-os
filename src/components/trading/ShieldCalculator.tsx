@@ -18,6 +18,7 @@ export const ShieldCalculator = () => {
     const [riskInput, setRiskInput] = useState<number>(3); // Max Drawdown risk% for Bisection
 
     // v22.0 specific states
+    const [currency, setCurrency] = useState<'USDT' | 'KRW'>('USDT');
     const [isBearMarket, setIsBearMarket] = useState<boolean>(false); // LSTM/GRU Filter Default
     const [cvdAbsorbed, setCvdAbsorbed] = useState<boolean>(true); // Volume Profile / CVD Absorption
     const [smcSwept, setSmcSwept] = useState<boolean>(true); // SMC Liquidity Sweep
@@ -216,9 +217,15 @@ export const ShieldCalculator = () => {
                             </h4>
                             <div className="space-y-3 bg-[#0b1121] border border-[#1e3a8a]/40 p-3 rounded-lg shadow-inner">
                                 <div>
-                                    <label className="text-[10px] text-zinc-400 mb-1 block">운용 가능 총 자산 (USDT)</label>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-[10px] text-zinc-400 block">운용 가능 총 자산 ({currency})</label>
+                                        <div className="flex items-center bg-zinc-900/50 border border-zinc-800 rounded p-0.5">
+                                            <button onClick={() => setCurrency('USDT')} className={`text-[9px] px-2 py-0.5 rounded transition-colors ${currency === 'USDT' ? 'bg-[#3b82f6]/40 text-blue-200' : 'text-zinc-600'}`}>USDT</button>
+                                            <button onClick={() => setCurrency('KRW')} className={`text-[9px] px-2 py-0.5 rounded transition-colors ${currency === 'KRW' ? 'bg-[#3b82f6]/40 text-blue-200' : 'text-zinc-600'}`}>KRW</button>
+                                        </div>
+                                    </div>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+                                        {currency === 'USDT' ? <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" /> : <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-600">₩</span>}
                                         <Input
                                             type="number"
                                             value={seed}
@@ -265,7 +272,7 @@ export const ShieldCalculator = () => {
                                     <>
                                         <p className="text-sm text-sky-400 font-bold text-center leading-relaxed">
                                             크립토 윈터 감지 발동<br />
-                                            <span className="text-zinc-300 text-[10px] font-normal mt-1 block px-4">LSTM 신경망이 하락장 매크로를 감지했습니다.<br />손도끼를 내려놓고 100% 현금(USDT)을 보존하십시오.</span>
+                                            <span className="text-zinc-300 text-[10px] font-normal mt-1 block px-4">LSTM 신경망이 하락장 매크로를 감지했습니다.<br />손도끼를 내려놓고 100% 현금({currency})을 보존하십시오.</span>
                                         </p>
                                     </>
                                 ) : isFakeoutWarning ? (
@@ -341,7 +348,7 @@ export const ShieldCalculator = () => {
                                         className="bg-emerald-500 h-full flex items-center justify-center transition-all duration-1000 ease-in-out"
                                         style={{ width: `${results.cashPct}%` }}
                                     >
-                                        {results.cashPct > 15 && <span className="text-[10px] font-black text-emerald-950 uppercase">관망 현금 (USDT) {results.cashPct.toFixed(1)}%</span>}
+                                        {results.cashPct > 15 && <span className="text-[10px] font-black text-emerald-950 uppercase">관망 현금 ({currency}) {results.cashPct.toFixed(1)}%</span>}
                                     </div>
                                     <div
                                         className="bg-[#3b82f6] h-full flex items-center justify-center transition-all duration-1000 ease-in-out"
@@ -355,7 +362,9 @@ export const ShieldCalculator = () => {
                             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#1e3a8a]/20">
                                 <div className="space-y-1">
                                     <div className="text-[9px] text-zinc-500 uppercase">예상 최대 블리딩 (위험 노출)</div>
-                                    <div className="text-sm font-black text-rose-400">-${results.expectedLossAmount.toFixed(2)}</div>
+                                    <div className="text-sm font-black text-rose-400">
+                                        {currency === 'USDT' ? `-$${results.expectedLossAmount.toFixed(2)}` : `-₩${Math.round(results.expectedLossAmount).toLocaleString()}`}
+                                    </div>
                                 </div>
                                 <div className="space-y-1 text-right">
                                     <div className="text-[9px] text-zinc-500 uppercase">최종 현물 진입 수량 (1x Spot)</div>
