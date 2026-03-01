@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HP1 - 계좌 생존 OS",
-  description: "트레이더의 시드 보존을 위한 강제 생존 통제 시스템",
+  title: "HP1 - 현물 매집 마스터 OS",
+  description: "트레이더의 고래 매집 추적 및 시드 보존을 위한 현물 포트폴리오 관리 시스템",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon.png",
