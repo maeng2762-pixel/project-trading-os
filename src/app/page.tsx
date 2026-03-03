@@ -269,10 +269,10 @@ export default function Home() {
                       </svg>
                     </div>
                     <span className="text-xl font-light tracking-tight text-white">HP1</span>
-                    <span className="text-[9px] text-zinc-500 font-mono opacity-80 uppercase tracking-widest ml-1 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">v22.0</span>
+                    <span className="text-[9px] text-zinc-500 font-mono opacity-80 uppercase tracking-widest ml-1 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">v41.0</span>
                   </div>
-                  <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.3em] mt-1 ml-4">
-                    Spot Accumulation Master
+                  <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.3em] mt-1 ml-4 mt-1">
+                    The Sniper's Pager
                   </div>
                 </div>
 
