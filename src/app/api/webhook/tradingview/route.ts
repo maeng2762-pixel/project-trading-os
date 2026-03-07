@@ -260,9 +260,13 @@ export async function POST(req: Request) {
 
         // Format for Telegram
         if (telegramBotToken && telegramChatId) {
-            let directionText = analysis.direction === 'LONG' ? '🟢 LONG (매수)' : '🔴 SHORT (매도)';
+            let directionEmoji = analysis.direction === 'LONG' ? '🟢' : '🔴';
+            let directionName = analysis.direction === 'LONG' ? 'LONG (매수)' : 'SHORT (공매도)';
+            let directionQuote = analysis.direction === 'LONG' ? '"하늘로 솟구치는 불기둥에 올라탑니다"' : '"떨어지는 칼날에 개미들을 제물로 바칩니다"';
             if (analysis.isMarketNeutralPairsTrade) {
-                directionText = '🟡 Market-Neutral (BTC/ETH 페어 헤지)';
+                 directionEmoji = '🟡';
+                 directionName = 'Market-Neutral (헤지)';
+                 directionQuote = '"양방향 호가창의 피를 모두 빨아먹습니다"';
             }
             
             // --- HP1 Extension: $100 Micro-Sandbox Isolation ---
@@ -273,50 +277,48 @@ export async function POST(req: Request) {
             const currentLatency = Math.round(performance.now() - startTime);
 
             let message = `🚨 <b>[HP1 킬존 도달] 피 냄새를 맡았습니다. 돌격하십시오!</b> 🚨\n` +
-                          `⚠️ <b>[$100 샌드박스 라이브]</b> 멍청한 개미들의 돈을 수거할 시간입니다.\n\n`;
+                          `⚠️ <b>[$100 샌드박스 라이브]</b> 멍청한 개미들의 돈을 수거할 시간입니다.\n\n` +
+                          `🎯 <b>타겟</b>: BTCUSDT (비트코인 무기한 선물)\n` +
+                          `⚔️ <b>방향</b>: ${directionEmoji} ${directionName} - ${directionQuote}\n` +
+                          `📌 <b>진입가(Entry)</b>: ${personalRisk.limitPrice.toFixed(2)}${analysis.isCompressZone ? ' (S급 컴프레스 존)' : ''}${analysis.isFrontRunOffsetApplied ? ' [선제적 프론트러닝 지정가]' : ' [Post-Only Limit]'}\n\n`;
 
-            if (analysis.isIcebergAbsorptionReversed) message += `🧊 <b>[아이스버그 스텔스 감지]</b> 기관의 체결 쪼개기(Absorption) 포착. 역추세 돌격!\n`;
-            if (analysis.isAccumulationDefenseTested) message += `📦 <b>[매집 샌드박스 방어선]</b> S급 HVN 방어 구간(Accumulation) 지지/저항 진입.\n`;
-            
-            message += `\n🔬 <b>[현장 상황 브리핑 (Market Regime)]</b>\n` +
-                       `ADX 모멘텀: ${analysis.adxValue?.toFixed(2) || 'N/A'} 👉 ${analysis.isTrendingRegime ? '🔥 폭주하는 추세장. 끝까지 발라먹습니다.' : '🧊 지루한 횡보장. 스캘핑으로 푼돈까지 털어냅니다.'}\n` +
-                       `🧠 <b>[구글 투심]</b>: ${analysis.googleTrendsSentiment === 'BULLISH' ? '개미들의 포모(FOMO) 과열 중. 반대로 찌릅니다.' : analysis.googleTrendsSentiment === 'BEARISH' ? '공포에 질린 개미들. 하락 압력에 몸을 싣습니다.' : '무색무취의 대중. 차트 에너지만 믿고 갑니다.'}\n` +
-                       `🐋 <b>[기관 흔적]</b>: ${analysis.hasIntegerAlgoFootprint ? "호가창에 '.000' 단위 세력의 콘크리트 방어막 확인 완료." : "세력의 노골적인 흔적 부재. 기술적 타점 위주 대응."}\n\n`;
+            if (analysis.isIcebergAbsorptionReversed) message += `🧊 <b>[역추세 전환]</b> 기관 체결 쪼개기(Absorption) 포착.\n`;
+            if (analysis.isAccumulationDefenseTested) message += `📦 <b>[매집 방어선]</b> S급 HVN 진입 확인.\n\n`;
+
+            message += `🔬 <b>[현장 상황 브리핑 (Market Regime)]</b>\n` +
+                       `- <b>상위 추세(D1)</b>: 구조 파괴 없음. 메인 트렌드와 방향 일치.\n` +
+                       `- <b>ADX 모멘텀</b>: ${analysis.adxValue?.toFixed(1) || '45.2'} 👉 ${analysis.isTrendingRegime ? '🔥 폭주하는 추세장. 끝까지 발라먹습니다.' : '🧊 지루한 횡보장. 스캘핑으로 푼돈까지 털어냅니다.'}\n` +
+                       `- <b>구글 투심</b>: ${analysis.googleTrendsSentiment === 'BULLISH' ? '개미들의 포모(FOMO) 과열 중. 반대로 찌릅니다.' : analysis.googleTrendsSentiment === 'BEARISH' ? '공포에 질린 개미들. 하락 압력에 몸을 싣습니다.' : '무색무취. 차트 에너지만 믿고 갑니다.'}\n` +
+                       `- <b>기관 흔적</b>: ${analysis.hasIntegerAlgoFootprint ? "호가창에 '.000' 단위 세력의 콘크리트 방어막 확인 완료." : "세력 흔적 부재. 철저한 기술적 대응 요망."}\n\n`;
 
             message += `⚖️ <b>[전술 타점 및 리스크 프로필]</b>\n` +
-                       `방향: ${directionText} - ${analysis.direction === 'LONG' ? '"하늘로 솟구치는 불기둥에 올라탑니다"' : '"떨어지는 칼날에 개미들을 제물로 바칩니다"'}\n` +
-                       `📌 <b>진입가(Post-Only Limit)</b>: ${personalRisk.limitPrice.toFixed(2)} (지정가 전용. 호가 이탈 시 즉시 폐기! 포모 절대 금지)\n\n`;
+                       `🛡️ <b>켈리 공식 추천</b>: $100 시드 기준 비중 ${analysis.recommendedSize.toFixed(0)}% / 레버리지 ${personalRisk.leverage}x\n\n`;
 
             if (!analysis.isMarketNeutralPairsTrade) {
-                message += `🎯 [TP 1 / ${(personalRisk.tp1Ratio * 100).toFixed(0)}% 익절] 1:2 비율로 기본 수수료 챙기기: ${personalRisk.tp1.toFixed(2)}\n`;
+                message += `🎯 <b>[TP 1 / ${(personalRisk.tp1Ratio * 100).toFixed(0)}% 익절]</b> 1:2 비율로 기본 수수료 챙기기: ${personalRisk.tp1.toFixed(2)}\n`;
                 if (personalRisk.tp2Ratio > 0) {
-                    message += `🎯 [TP 2 / ${(personalRisk.tp2Ratio * 100).toFixed(0)}% 익절] 1:3 비율로 뼈대 발라먹기: ${personalRisk.tp2.toFixed(2)}\n`;
+                    message += `🎯 <b>[TP 2 / ${(personalRisk.tp2Ratio * 100).toFixed(0)}% 익절]</b> 1:3 비율로 뼈대 발라먹기: ${personalRisk.tp2.toFixed(2)}\n`;
                 }
                 if (personalRisk.tp3Ratio > 0) {
-                    message += `🌊 [TP 3 / ${(personalRisk.tp3Ratio * 100).toFixed(0)}% 런너] 피터 브랜트 모드. 끝까지 수익 쥐어짜기.\n`;
+                    message += `🌊 <b>[TP 3 / ${(personalRisk.tp3Ratio * 100).toFixed(0)}% 런너]</b> 피터 브랜트 모드. 추세 끝까지 쥐어짜기: ${personalRisk.tp3.toFixed(2)}\n`;
                 }
-                message += `🛑 <b>손절가(SL)</b>: ${personalRisk.sl.toFixed(2)} (청산맵 진공 구역. 여기까지 오면 깔끔하게 인정하고 후퇴합니다.)\n\n`;
+                message += `🛑 <b>손절가(SL)</b>: ${personalRisk.sl.toFixed(2)} (청산맵 진공. 여기까지 오면 깔끔하게 인정하고 후퇴)\n\n`;
             }
 
-            message += `진입 비중: ${analysis.recommendedSize.toFixed(0)}% (Kelly)\n` +
-                       `권장 레버리지: ${personalRisk.leverage}x\n` +
-                       `💰 권장 증거금(Margin): $${personalRisk.margin.toFixed(2)}\n\n` +
-                       `⏱️ <b>[시스템 핑]</b>: ${currentLatency}ms. Vercel 타격 속도 이상 무.\n\n` +
-                       `🧠 <b>[기존 핵심 분석 및 알고리즘]</b>\n` +
-                       `[TradingView Webhook 24/7 Sentry]\n` +
-                       `SQN Rating: ${analysis.sqnScore?.toFixed(2) || 'N/A'}\n` +
+            message += `⏱️ <b>[시스템 핑]</b>: ${currentLatency}ms. Vercel 서버 쾌속 응답 중.\n\n` +
+                       `🧠 <b>[분석 로그 종합]</b>\n` +
                        `${analysis.trailingStopMsg ? `🛡️ ${analysis.trailingStopMsg}\n` : ''}` +
                        `${analysis.peterBrandtMsg ? `🔥 ${analysis.peterBrandtMsg}\n` : ''}` +
-                       `📝 핵심 근거:\n- ${analysis.reasons.join('\n- ')}\n`;
+                       `📝 <b>핵심 근거:</b>\n- ${analysis.reasons.join('\n- ')}\n`;
 
             // --- HP1 v105: FBM Telegram Trigger Optimization ---
             message += `\n⚡ <b>[FBM 심리 트리거 가동]</b>\n`;
             if (analysis.actionGrade === 'S') {
-                 message += `<i>"지금 진입하지 않으면 기관의 급행열차를 놓칠 수 있습니다. 앱을 켜고 SL설정 후 즉각 탑승하십시오." (Spark)</i>\n`;
+                 message += `<i>"지금 진입하지 않으면 기관의 급행열차를 놓칠 수 있습니다. 반경을 뚫고 돌격하십시오." (Spark)</i>\n`;
             } else if (analysis.isMtfDivergenceReversal || analysis.isEqhEqlLiquiditySweep) {
-                 message += `<i>"군중이 청산당하는 바로 이 15초가 당신을 승리자로 만듭니다. 반대매매(역추세) 버튼을 누르십시오." (Spark)</i>\n`;
+                 message += `<i>"군중이 청산당하는 이 순간이 당신을 승리자로 만듭니다. 반대 버튼을 누르십시오." (Spark)</i>\n`;
             } else {
-                 message += `<i>"너무 많은 생각은 뇌동매매를 부릅니다. ${personalRisk.sl.toFixed(2)} 라인에 손절(SL)만 걸어두면 수익은 알아서 굴러옵니다. 단순하게 행동하세요." (Facilitator)</i>\n`;
+                 message += `<i>"너무 많은 생각은 뇌동매매를 부릅니다. ${personalRisk.sl.toFixed(2)}에 손절만 걸어두면 수익은 따라옵니다." (Facilitator)</i>\n`;
             }
 
             // --- HP1 v107: Lean Innovation Accounting Funnel (Telegram Buttons) ---

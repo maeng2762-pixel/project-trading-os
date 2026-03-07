@@ -132,6 +132,11 @@ export interface AnalysisResult {
     zoomInPivotActive?: boolean;
     zoomInPivotStrategy?: string;
     cvdOiBreakoutConfirmed?: boolean;
+
+    // --- HP1 v115 The Apex Asymmetry ---
+    isFrontRunOffsetApplied?: boolean;
+    smcCurrentRetracementPct?: number;
+    macroOptionsRegime?: 'VOLATILE_GAMMA' | 'STABLE';
 }
 
 export interface ExtData {
@@ -198,6 +203,10 @@ export interface ExtData {
     zoomInPivotActive?: boolean;
     zoomInPivotStrategy?: string;
     cvdOiBreakoutConfirmed?: boolean;
+
+    // --- HP1 v115: The Apex Asymmetry ---
+    smcCurrentRetracementPct?: number;
+    macroOptionsRegime?: 'VOLATILE_GAMMA' | 'STABLE';
 }
 
 // --- Basic Indicator Functions ---
@@ -260,20 +269,20 @@ const calculateEMA = (prices: number[], period: number): number => {
 const calculateADX = (highs: number[], lows: number[], closes: number[], period: number = 14): number => {
     if (closes.length < period * 2) return 20;
 
-    let trs: number[] = [];
-    let pdms: number[] = [];
-    let ndms: number[] = [];
+    const trs: number[] = [];
+    const pdms: number[] = [];
+    const ndms: number[] = [];
 
     for (let i = 1; i < closes.length; i++) {
-        let tr = Math.max(
+        const tr = Math.max(
             highs[i] - lows[i],
             Math.abs(highs[i] - closes[i - 1]),
             Math.abs(lows[i] - closes[i - 1])
         );
         trs.push(tr);
 
-        let upMove = highs[i] - highs[i - 1];
-        let downMove = lows[i - 1] - lows[i];
+        const upMove = highs[i] - highs[i - 1];
+        const downMove = lows[i - 1] - lows[i];
 
         if (upMove > downMove && upMove > 0) {
             pdms.push(upMove);
@@ -288,21 +297,21 @@ const calculateADX = (highs: number[], lows: number[], closes: number[], period:
     }
 
     const smooth = (arr: number[], period: number) => {
-        let smoothed = [arr.slice(0, period).reduce((a, b) => a + b, 0)];
+        const smoothed = [arr.slice(0, period).reduce((a, b) => a + b, 0)];
         for (let i = period; i < arr.length; i++) {
             smoothed.push(smoothed[smoothed.length - 1] - (smoothed[smoothed.length - 1] / period) + arr[i]);
         }
         return smoothed;
     };
 
-    let smoothedTR = smooth(trs, period);
-    let smoothedPDM = smooth(pdms, period);
-    let smoothedNDM = smooth(ndms, period);
+    const smoothedTR = smooth(trs, period);
+    const smoothedPDM = smooth(pdms, period);
+    const smoothedNDM = smooth(ndms, period);
 
-    let dxs: number[] = [];
+    const dxs: number[] = [];
     for (let i = 0; i < smoothedTR.length; i++) {
-        let diPlus = smoothedTR[i] > 0 ? (smoothedPDM[i] / smoothedTR[i]) * 100 : 0;
-        let diMinus = smoothedTR[i] > 0 ? (smoothedNDM[i] / smoothedTR[i]) * 100 : 0;
+        const diPlus = smoothedTR[i] > 0 ? (smoothedPDM[i] / smoothedTR[i]) * 100 : 0;
+        const diMinus = smoothedTR[i] > 0 ? (smoothedNDM[i] / smoothedTR[i]) * 100 : 0;
         let dx = (diPlus + diMinus) > 0 ? (Math.abs(diPlus - diMinus) / (diPlus + diMinus)) * 100 : 0;
         if (isNaN(dx)) dx = 0;
         dxs.push(dx);
@@ -660,7 +669,7 @@ export const AnalysisEngine = {
         const currentVWAP = cumulativePVol / cumulativeVol;
         
         // CVD Trend (comparing current vs 5 candles ago to see slope)
-        let previousCVD = cumulativeCVD; // We need a history of CVD but for simplicity let's approximate
+        const previousCVD = cumulativeCVD; // We need a history of CVD but for simplicity let's approximate
         // Calculate CVD from 5 candles ago
         let pastCVD = 0;
         recentCandles.slice(0, -5).forEach(c => {
@@ -687,6 +696,14 @@ export const AnalysisEngine = {
         else if (regimeVolatilityRatio < 0.015) marketRegime = 'BOX';
         else marketRegime = 'TREND';
 
+        // --- HP1 v115: Options GEX & PCR Macro-Switch ---
+        let isMacroSwitchActive = false;
+        if (extData?.macroOptionsRegime === 'VOLATILE_GAMMA') {
+             marketRegime = 'TREND';
+             isMacroSwitchActive = true;
+             reasons.push("⚡ [Macro-Switch] Negative GEX 및 비정상적 펀딩비 포착. 횡보장 스캘핑을 강제 종료하고 변동성 동기화(Breakout) 모드로 공격적 전환합니다.");
+        }
+
         let wTrend = 0.4, wVol = 0.2, wRsi = 0.2, wSent = 0.2;
         if (marketRegime === 'BOX' || marketRegime === 'EVENT_WAIT') {
              // In chop, momentum/RSI is more important than moving average trend, volume is key
@@ -696,7 +713,12 @@ export const AnalysisEngine = {
              wTrend = 0.2; wVol = 0.2; wRsi = 0.1; wSent = 0.5; // Sentiment matters most
              reasons.push(`💡 다차원 국면 스캐닝: [${marketRegime}] -> (추세 포모 덫 방지 심리/센티먼트 최우선 가중)`);
         } else {
-             reasons.push(`💡 다차원 국면 스캐닝: [${marketRegime}] -> (클래식 추세 추종 가중치 적용)`);
+             if (isMacroSwitchActive) {
+                 wTrend = 0.5; wVol = 0.3; wRsi = 0.1; wSent = 0.1; // Aggressive trend weights for breakout
+                 reasons.push(`💡 다차원 국면 스캐닝: [MACRO_BREAKOUT] -> (옵션 만기 변동성 폭발. 강력한 추세 상승/하락 가중치 적용)`);
+             } else {
+                 reasons.push(`💡 다차원 국면 스캐닝: [${marketRegime}] -> (클래식 추세 추종 가중치 적용)`);
+             }
         }
 
         // Final Score Calculation (Regime-Aware)
@@ -709,7 +731,7 @@ export const AnalysisEngine = {
         // --- HP1 v108: Volatility Correction & v105: WAE Dead Zone Filter ---
         let isWaeDeadZoneRejected = false;
         let isVolatilityDroughtRejected = false;
-        if (extData?.isWaeDeadZone || isVolatilityDrought) {
+        if ((extData?.isWaeDeadZone || isVolatilityDrought) && !isMacroSwitchActive) {
              rawScore = 50;
              if (extData?.isWaeDeadZone) {
                  isWaeDeadZoneRejected = true;
@@ -719,6 +741,8 @@ export const AnalysisEngine = {
                  isVolatilityDroughtRejected = true;
                  reasons.push(`🏜️ 변동성 가뭄(Volatility Drought) 감지: 14일 평균 ATR 50% 미만 -> 휩쏘 방지 및 수수료 보호. 강제 차단.`);
              }
+        } else if ((extData?.isWaeDeadZone || isVolatilityDrought) && isMacroSwitchActive) {
+             reasons.push(`🔥 [Macro-Switch Override] WAE Dead Zone 및 변동성 고갈 차단 필터를 강제 해제합니다. (사유: 거시적 옵션 포지셔닝에 의한 극단적 변동성 임박)`);
         }
 
         // --- HP1 v56.0: The End-Game (마스터피스 패치) ---
@@ -1173,7 +1197,7 @@ export const AnalysisEngine = {
         // HP1 Proxy: (WinRate - 50) * 2. 
         // Example: 65% win rate -> (15) * 2 = 30% HP1.
         // Safety Cap: Min(HP1, 20%)
-        let winRateProxy = direction === 'LONG' ? bullishProb : direction === 'SHORT' ? bearishProb : 50;
+        const winRateProxy = direction === 'LONG' ? bullishProb : direction === 'SHORT' ? bearishProb : 50;
         let hp1Size = 0;
 
         if (winRateProxy > 50) {
@@ -1190,7 +1214,7 @@ export const AnalysisEngine = {
 
         // Leverage
         const slDistPercent = (atr * 2) / currentPrice;
-        let recommendedLeverage = Math.max(1, Math.min(5, 0.01 / slDistPercent));
+        const recommendedLeverage = Math.max(1, Math.min(5, 0.01 / slDistPercent));
 
         // 6. SL & TP (Legal Terms: Invalidation & Stat Resistance)
         let recommendedSL = 0;
@@ -1471,7 +1495,12 @@ export const AnalysisEngine = {
             fiveWhysDiagnostic: extData?.fiveWhysDiagnostic,
             zoomInPivotActive: extData?.zoomInPivotActive,
             zoomInPivotStrategy: extData?.zoomInPivotStrategy,
-            cvdOiBreakoutConfirmed: extData?.cvdOiBreakoutConfirmed
+            cvdOiBreakoutConfirmed: extData?.cvdOiBreakoutConfirmed,
+
+            // HP1 v115 The Apex Asymmetry
+            isFrontRunOffsetApplied: false, // Calculated later in calculatePersonalRisk
+            smcCurrentRetracementPct: extData?.smcCurrentRetracementPct,
+            macroOptionsRegime: extData?.macroOptionsRegime
         } as any; // Cast as any because we are changing the return shape potentially, but let's keep it compatible if possible or update interface
     },
 
@@ -1483,7 +1512,7 @@ export const AnalysisEngine = {
         balance: number,
         currentPrice: number,
         mode: 'BLUE' | 'RED' = 'BLUE'
-    ): { margin: number; leverage: number; limitPrice: number; sl: number; tp1: number; tp2: number; tp3: number; tp: number; tp1Ratio: number; tp2Ratio: number; tp3Ratio: number; reason: string; isPyramidEligible?: boolean } => {
+    ): { margin: number; leverage: number; limitPrice: number; sl: number; tp1: number; tp2: number; tp3: number; tp: number; tp1Ratio: number; tp2Ratio: number; tp3Ratio: number; reason: string; isPyramidEligible?: boolean; isFrontRunOffsetApplied?: boolean } => {
 
         if (signal.actionGrade === 'F') {
             return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: "Signal Grade F. Do not trade." };
@@ -1509,7 +1538,7 @@ export const AnalysisEngine = {
 
         let tp1Dist = slDist * 2.0;
         let tp2Dist = slDist * 3.0;
-        let tp3Dist = tpDist; 
+        const tp3Dist = tpDist; 
         
         if (signal.isTrendingRegime === false) {
              // Noise / Ranging Form: ADX < 25 or D-Shape Simulation
@@ -1547,12 +1576,12 @@ export const AnalysisEngine = {
         const risk = (Math.abs(sl - currentPrice) / currentPrice);
 
         // Simplified Busseti: f = (reward * winProb - risk * lossProb) / (reward * risk * lambda)
-        let lambdaBase = mode === 'RED' ? 1.5 : 3.0; // Higher lambda = smoother equity curve (Less drawdown)
+        const lambdaBase = mode === 'RED' ? 1.5 : 3.0; // Higher lambda = smoother equity curve (Less drawdown)
         
         // --- HP1 Extension: SQN Auto-Calibration ---
         // If SQN is excellent (>3.0), lambdaModifier is 1.5. To increase aggression, we DIVIDE lambda by lambdaModifier. 
         // If SQN is collapsing (<1.6), lambdaModifier is 0.0, we shouldn't even be here since killSwitch was hit.
-        let lambda = lambdaBase / (signal.lambdaModifier || 1.0);
+        const lambda = lambdaBase / (signal.lambdaModifier || 1.0);
         
         let kellyOptimalRatioBusseti = (reward * winProb - risk * lossProb) / (reward * risk * lambda);
         kellyOptimalRatioBusseti = Math.max(0, Math.min(0.2, kellyOptimalRatioBusseti)); // Limit to 20% for safety
@@ -1576,11 +1605,24 @@ export const AnalysisEngine = {
         // [Phase 16] 2.0% for S-Grade Capital, else 1.5%
         let maxRiskPct = mode === 'BLUE' ? (isHighConviction ? 0.020 : 0.015) : 0.005;
 
+        // --- HP1 v115: SMC OTE (Optimal Trade Entry) Retracement Engine ---
+        let isOteZone = false;
+        if (signal.smcCurrentRetracementPct && signal.smcCurrentRetracementPct >= 61.8 && signal.smcCurrentRetracementPct <= 78.6) {
+            isOteZone = true;
+            riskOracleMsg += `[📐 OTE Zone 진입 (61.8~78.6%): 승인 가중치 최대치 격상] `;
+            leverage = 5; // Force max leverage
+            maxRiskPct = mode === 'BLUE' ? 0.025 : 0.010; // Aggressive bet
+        }
+
         // --- HP1 v114: The Meta-Cognitive Predator (Meta-Labeling) ---
         if (signal.metaLabelingFalsePositive) {
-            maxRiskPct = 0; // Force 0% risk
-            leverage = 0;
-            riskOracleMsg += `[🧠 Meta-Labeling: False Positive (가짜 신호) 감지. 비중 0% 강제 차단] `;
+            if (isOteZone) {
+                riskOracleMsg += `[🧠 Meta-Labeling Overruled: OTE Zone 특수 면책권 발동] `;
+            } else {
+                maxRiskPct = 0; // Force 0% risk
+                leverage = 0;
+                riskOracleMsg += `[🧠 Meta-Labeling: False Positive (가짜 신호) 감지. 비중 0% 강제 차단] `;
+            }
         }
 
         // HP1 v53.0: The Risk Oracle (Monte Carlo Risk of Ruin & RSI Divergence Sweep)
@@ -1613,11 +1655,33 @@ export const AnalysisEngine = {
 
         const isPyramidEligible = isHighConviction;
 
+        // --- HP1 v115: Front-Running Limit Offset (선제적 지정가 오프셋) ---
+        // offset: 0.05% front-run (LONG targets slightly higher, SHORT targets slightly lower)
+        const offsetPct = 0.0005;
+        let limitPrice = currentPrice;
+        let isFrontRunOffsetApplied = false;
+
+        if (maxRiskPct > 0) {
+            if (signal.direction === 'LONG') {
+                limitPrice = currentPrice * (1 + offsetPct);
+                tp1 = tp1 * (1 - offsetPct); 
+                tp2 = tp2 * (1 - offsetPct);
+                tp3 = tp3 * (1 - offsetPct);
+                tp = tp * (1 - offsetPct);
+            } else if (signal.direction === 'SHORT') {
+                limitPrice = currentPrice * (1 - offsetPct);
+                tp1 = tp1 * (1 + offsetPct);
+                tp2 = tp2 * (1 + offsetPct);
+                tp3 = tp3 * (1 + offsetPct);
+                tp = tp * (1 + offsetPct);
+            }
+            isFrontRunOffsetApplied = true;
+            riskOracleMsg += `[🏃 Front-Run Offset 0.05% 적용 완료] `;
+        }
+
         const reason = `[${mode}] ${riskOracleMsg}${isHighConviction ? '🔥 S급 공격 진입: ' : ''}Max Risk ${(maxRiskPct * 100).toFixed(2)}% ($${maxLossUSDT.toFixed(1)}). SL ${slDist.toFixed(1)} points away. Set Margin to $${marginUSDT.toFixed(0)} with ${leverage}x Lev.`;
 
-        const limitPrice = currentPrice; // v113 Maker's Gambit: Post-Only Limit defaults to current market price but entered as a limit order
-
-        return { margin: marginUSDT, leverage, limitPrice, sl, tp1, tp2, tp3, tp, tp1Ratio, tp2Ratio, tp3Ratio, reason, isPyramidEligible };
+        return { margin: marginUSDT, leverage, limitPrice, sl, tp1, tp2, tp3, tp, tp1Ratio, tp2Ratio, tp3Ratio, reason, isPyramidEligible, isFrontRunOffsetApplied };
     },
 
     // --- HP1 Extension: The SQN & ATR Pinnacle Helpers ---
@@ -1644,7 +1708,7 @@ export const AnalysisEngine = {
     },
 
     runMonteCarloBootstrapping: (trades: number[], iterations: number = 10000) => {
-        let maxDrawdowns = [];
+        const maxDrawdowns = [];
         let ruins = 0;
         const baseCapital = 10000;
         const riskPerTrade = 0.02; // 2% Base
