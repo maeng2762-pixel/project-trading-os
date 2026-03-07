@@ -2332,5 +2332,7 @@ export const AnalysisEngine = {
 
         return { margin: marginUSDT, leverage, limitPrice, sl, tp1, tp2, tp3, tp, tp1Ratio, tp2Ratio, tp3Ratio, reason, isPyramidEligible, isFrontRunOffsetApplied };
     },
-    generatePositionAdvice
+    generatePositionAdvice,
+    calculateSQN,
+    runMonteCarloBootstrapping
 };
