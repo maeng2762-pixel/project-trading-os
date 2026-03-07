@@ -147,6 +147,7 @@ export interface AnalysisResult {
     isIntradayScalp?: boolean;
     intradayReason?: string;
     vwapLevel?: number;
+    intradayTp1Override?: number;
 }
 
 export interface ExtData {
@@ -230,6 +231,15 @@ export interface ExtData {
     vwapBreakoutDetected?: boolean;
     volumeClusterFirstTouch?: boolean;
     vwapLevel?: number;
+
+    // --- HP1 v116-D 데이트레이딩 심화: The Intraday Apex Predator ---
+    liquidationClusterPersistenceHours?: number; // 히트맵 상 유지 시간 (12시간 이상)
+    liquidationGapTarget?: number; // 1차 TP 진공 구간
+    cvdExhaustionMismatch?: boolean; // CVD 급등/급락에도 가격 미갱신
+    openInterestDelta?: number; // 미결제약정 변화량 (상승/하락)
+    sweepExecutionDetected?: boolean; // 다중 호가 타격 체결 여부
+    bollingerBands5mSqueezeActive?: boolean; // 5분봉 볼린저 밴드 스퀴즈 & 볼륨 고갈 상태
+    bollingerBands5mBreakout?: 'UP' | 'DOWN'; // 2σ 밖으로 가격과 거래량 동반 폭발
 }
 
 // --- Basic Indicator Functions ---
@@ -994,25 +1004,62 @@ export const AnalysisEngine = {
         // --- HP1 v116-D: The Intraday Predator (장중 스캘핑 투 트랙 오버라이드) ---
         let isIntradayScalp = false;
         let intradayReason = "";
+        let intradayTp1Override: number | undefined = undefined;
         const vwapLevel = extData?.vwapLevel || currentVWAP;
 
         if (extData?.liquidationSweepDetected && extData?.rsiDivergence15m) {
-            isIntradayScalp = true;
-            intradayReason = "🧲 [청산 스윕 & RSI] 체결맵 스윕 후 15m RSI 다이버전스 확증. 돌파 반대 방향 역추세 탑승 (프론트러닝 지정가 대기).";
-        } else if (extData?.vwapBreakoutDetected) {
-            isIntradayScalp = true;
-            intradayReason = "🌊 [VWAP 돌파 & CVD 확장] VWAP 탈환 지점에서 강력한 CVD 패닉바잉 동반 확증. 돌파 추세에 합류합니다.";
-        } else if (extData?.vwapAbsorptionDetected) {
-             isIntradayScalp = true;
-             intradayReason = "🌊 [VWAP 매도 흡수] VWAP 터치 시점에 시장가 매수세가 지정가에 역으로 막히는 Absorption(흡수) 발생. 역추세로 스위칭합니다.";
-        } else if (extData?.volumeClusterFirstTouch) {
-             isIntradayScalp = true;
-             intradayReason = "🧱 [30m Volume Cluster] 당일 최대 볼륨 클러스터 '첫 번째 터치(First Touch)' 지지/저항 방어 확인. 즉각 스캘핑 진입.";
+            // v116-D 심화: 히트맵 진성 클러스터(12시간 이상 유지) 검증
+            if (extData.liquidationClusterPersistenceHours && extData.liquidationClusterPersistenceHours >= 12) {
+                isIntradayScalp = true;
+                intradayReason = "🧲 [청산 스윕 & RSI] 12시간 이상 유지된 진성 체결맵 스윕 후 15m RSI 다이버전스 확증. 돌파 반대 방향 역추세 탑승 (프론트러닝 지정가 대기).";
+            } else {
+                 reasons.push("ℹ️ [청산 필터] 스윕은 감지되었으나, 히트맵 클러스터 유지 시간이 12시간 미만으로 단기 노이즈(휩쏘) 함정일 가능성 파악. 진입 보류.");
+            }
+        } 
+        
+        // v116-D 심화: Adaptive BB Squeeze Breakout (적응형 BB 스퀴즈 폭발)
+        if (extData?.bollingerBands5mSqueezeActive && extData?.bollingerBands5mBreakout) {
+             if ((extData.bollingerBands5mBreakout === 'UP' && rawDirection === 'LONG') || 
+                 (extData.bollingerBands5mBreakout === 'DOWN' && rawDirection === 'SHORT')) {
+                 isIntradayScalp = true;
+                 intradayReason = `🗜️ [BB Squeeze Breakout] 5m 적응형 볼린저밴드 극도 수축(폭풍 전야) 구간 돌파 확인! 거래량 폭발 동반. ${extData.bollingerBands5mBreakout} 장중 돌파 셋업 승인.`;
+             }
+        }
+
+        if (!isIntradayScalp) {
+            if (extData?.vwapBreakoutDetected) {
+                // v116-D 심화: OI & Sweep Confirmation
+                if (extData.openInterestDelta && extData.openInterestDelta > 0 && extData.sweepExecutionDetected) {
+                    isIntradayScalp = true;
+                    intradayReason = "🌊 [VWAP 돌파 & CVD 확장 & OI 동반상승] VWAP 탈환 지점에서 강력한 CVD 패닉바잉 동반 및 찐 반등 확증(OI 상승 및 Sweep 체결). 돌파 추세 강력 합류.";
+                } else if (extData.openInterestDelta !== undefined && extData.openInterestDelta <= 0) {
+                     reasons.push("ℹ️ [VWAP 가짜 반등 필터] VWAP은 돌파/이탈했으나 미결제약정(OI)이 감소 중입니다 (단순 포지션 청산). 장중 진입 취소.");
+                } else {
+                    isIntradayScalp = true;
+                    intradayReason = "🌊 [VWAP 돌파 & CVD 확장] VWAP 탈환 지점에서 강력한 CVD 팽창 수반 돌파 확증. 돌파 추세에 합류합니다.";
+                }
+            } else if (extData?.vwapAbsorptionDetected) {
+                isIntradayScalp = true;
+                intradayReason = "🌊 [VWAP 매도 흡수] VWAP 터치 시점에 시장가 체결이 지정가 물량에 역으로 막히는 Absorption(흡수) 발생. 역추세로 스위칭합니다.";
+            } else if (extData?.volumeClusterFirstTouch) {
+                isIntradayScalp = true;
+                intradayReason = "🧱 [30m Volume Cluster] 당일 최대 볼륨 클러스터 '첫 번째 터치(First Touch)' 지지/저항 방어 확인. 즉각 스캘핑 진입.";
+            } else if (extData?.cvdExhaustionMismatch) {
+                // v116-D 심화: CVD Exhaustion Reversal
+                isIntradayScalp = true;
+                intradayReason = "📉 [CVD Exhaustion] 시장가 CVD가 극도로 한 방향으로 쏠림에도 불구하고 캔들 가격은 제자리걸음(Mismatch). 세력의 개미 연료 털기(역추세 튕기기) 스캘핑 탑승.";
+            }
         }
 
         if (isIntradayScalp) {
              rawScore = rawDirection === 'LONG' ? 100 : 0; // 거시적 필터 무시를 위해 강력 승인 트리거
              reasons.push(intradayReason);
+             
+             // v116-D 심화: 진공 구간 관통 1차 TP 공격적 설정
+             if (extData?.liquidationGapTarget) {
+                 intradayTp1Override = extData.liquidationGapTarget;
+                 reasons.push(`🌀 [Liquidity Gap Targeting] 다음 클러스터까지의 유동성 진공 구간 포착. 1차 익절가(TP1)를 $${intradayTp1Override.toFixed(2)} 로 공격적 설정.`);
+             }
         }
 
         // 2. 스마트머니 FVG 자석화 (FVG Consecutive Merge)
@@ -1580,7 +1627,8 @@ export const AnalysisEngine = {
             // HP1 v116-D The Intraday Predator
             isIntradayScalp,
             intradayReason,
-            vwapLevel
+            vwapLevel,
+            intradayTp1Override
         } as any; // Cast as any because we are changing the return shape potentially, but let's keep it compatible if possible or update interface
     },
 
@@ -1643,6 +1691,10 @@ export const AnalysisEngine = {
             tp2 = currentPrice - tp2Dist;
             tp3 = currentPrice - tp3Dist;
             tp = tp3; 
+        }
+        
+        if (signal.intradayTp1Override) {
+            tp1 = signal.intradayTp1Override;
         }
 
         const slPercent = slDist / currentPrice;
