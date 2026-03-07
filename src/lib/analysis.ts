@@ -142,6 +142,11 @@ export interface AnalysisResult {
     isKssArbitrageAligned?: boolean;
     isMacroFloorLocked?: boolean;
     tmmTarget?: number;
+
+    // --- HP1 v116-D The Intraday Predator ---
+    isIntradayScalp?: boolean;
+    intradayReason?: string;
+    vwapLevel?: number;
 }
 
 export interface ExtData {
@@ -217,6 +222,14 @@ export interface ExtData {
     kssSetarThresholdExceeded?: boolean;
     trueMarketMean?: number | null;
     realizedPrice?: number | null;
+
+    // --- HP1 v116-D: The Intraday Predator ---
+    liquidationSweepDetected?: boolean;
+    rsiDivergence15m?: boolean;
+    vwapAbsorptionDetected?: boolean;
+    vwapBreakoutDetected?: boolean;
+    volumeClusterFirstTouch?: boolean;
+    vwapLevel?: number;
 }
 
 // --- Basic Indicator Functions ---
@@ -978,6 +991,30 @@ export const AnalysisEngine = {
             }
         }
 
+        // --- HP1 v116-D: The Intraday Predator (장중 스캘핑 투 트랙 오버라이드) ---
+        let isIntradayScalp = false;
+        let intradayReason = "";
+        const vwapLevel = extData?.vwapLevel || currentVWAP;
+
+        if (extData?.liquidationSweepDetected && extData?.rsiDivergence15m) {
+            isIntradayScalp = true;
+            intradayReason = "🧲 [청산 스윕 & RSI] 체결맵 스윕 후 15m RSI 다이버전스 확증. 돌파 반대 방향 역추세 탑승 (프론트러닝 지정가 대기).";
+        } else if (extData?.vwapBreakoutDetected) {
+            isIntradayScalp = true;
+            intradayReason = "🌊 [VWAP 돌파 & CVD 확장] VWAP 탈환 지점에서 강력한 CVD 패닉바잉 동반 확증. 돌파 추세에 합류합니다.";
+        } else if (extData?.vwapAbsorptionDetected) {
+             isIntradayScalp = true;
+             intradayReason = "🌊 [VWAP 매도 흡수] VWAP 터치 시점에 시장가 매수세가 지정가에 역으로 막히는 Absorption(흡수) 발생. 역추세로 스위칭합니다.";
+        } else if (extData?.volumeClusterFirstTouch) {
+             isIntradayScalp = true;
+             intradayReason = "🧱 [30m Volume Cluster] 당일 최대 볼륨 클러스터 '첫 번째 터치(First Touch)' 지지/저항 방어 확인. 즉각 스캘핑 진입.";
+        }
+
+        if (isIntradayScalp) {
+             rawScore = rawDirection === 'LONG' ? 100 : 0; // 거시적 필터 무시를 위해 강력 승인 트리거
+             reasons.push(intradayReason);
+        }
+
         // 2. 스마트머니 FVG 자석화 (FVG Consecutive Merge)
         if (extData?.mergedFvgHigh !== undefined && extData?.mergedFvgHigh !== null && rawDirection === 'LONG') {
              isFvgMagnetActive = true;
@@ -1538,7 +1575,12 @@ export const AnalysisEngine = {
             // HP1 v116 The LLM-Quant Sovereign
             isKssArbitrageAligned,
             isMacroFloorLocked,
-            tmmTarget
+            tmmTarget,
+
+            // HP1 v116-D The Intraday Predator
+            isIntradayScalp,
+            intradayReason,
+            vwapLevel
         } as any; // Cast as any because we are changing the return shape potentially, but let's keep it compatible if possible or update interface
     },
 
