@@ -120,6 +120,18 @@ export interface AnalysisResult {
     googleTrendsSentiment?: string;
     volumeProfileShape?: string;
     hasIntegerAlgoFootprint?: boolean;
+
+    // --- HP1 v113: The Maker's Gambit ---
+    isFirstTouchMitigated?: boolean;
+    isTimeDecayTriggered?: boolean;
+    limitPrice?: number;
+
+    // --- HP1 v114: The Meta-Cognitive Predator ---
+    metaLabelingFalsePositive?: boolean;
+    fiveWhysDiagnostic?: string;
+    zoomInPivotActive?: boolean;
+    zoomInPivotStrategy?: string;
+    cvdOiBreakoutConfirmed?: boolean;
 }
 
 export interface ExtData {
@@ -175,6 +187,17 @@ export interface ExtData {
     googleTrendsSentiment?: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
     volumeProfileShape?: 'D' | 'P' | 'b' | 'THIN';
     hasIntegerAlgoFootprint?: boolean;
+
+    // --- HP1 v113: The Maker's Gambit ---
+    isFirstTouchMitigated?: boolean;
+    isTimeDecayTriggered?: boolean;
+
+    // --- HP1 v114: The Meta-Cognitive Predator ---
+    metaLabelingFalsePositive?: boolean;
+    fiveWhysDiagnostic?: string;
+    zoomInPivotActive?: boolean;
+    zoomInPivotStrategy?: string;
+    cvdOiBreakoutConfirmed?: boolean;
 }
 
 // --- Basic Indicator Functions ---
@@ -1226,6 +1249,15 @@ export const AnalysisEngine = {
             }
         }
 
+        // --- HP1 v113 Extension: First-Touch Mitigation ---
+        const isFirstTouchMitigated = extData?.isFirstTouchMitigated || false;
+        if (direction !== 'NEUTRAL' && isFirstTouchMitigated) {
+            direction = 'NEUTRAL';
+            recommendedSize = 0;
+            rawScore = 50;
+            reasons.unshift(`🚫 First-Touch Mitigation: 이미 소모된(Mitigated) 레벨입니다. 2차, 3차 터치 돌파 위험으로 재진입 영구 차단.`);
+        }
+
         // --- HP1 Extension: ATR-Volume Trailing Stop ---
         let trailingStopMsg = "";
         let peterBrandtMsg = "";
@@ -1432,7 +1464,14 @@ export const AnalysisEngine = {
             htfBlockReason,
             googleTrendsSentiment: extData?.googleTrendsSentiment,
             volumeProfileShape: extData?.volumeProfileShape,
-            hasIntegerAlgoFootprint: extData?.hasIntegerAlgoFootprint
+            hasIntegerAlgoFootprint: extData?.hasIntegerAlgoFootprint,
+
+            // HP1 v114 The Meta-Cognitive Predator
+            metaLabelingFalsePositive: extData?.metaLabelingFalsePositive,
+            fiveWhysDiagnostic: extData?.fiveWhysDiagnostic,
+            zoomInPivotActive: extData?.zoomInPivotActive,
+            zoomInPivotStrategy: extData?.zoomInPivotStrategy,
+            cvdOiBreakoutConfirmed: extData?.cvdOiBreakoutConfirmed
         } as any; // Cast as any because we are changing the return shape potentially, but let's keep it compatible if possible or update interface
     },
 
@@ -1444,10 +1483,10 @@ export const AnalysisEngine = {
         balance: number,
         currentPrice: number,
         mode: 'BLUE' | 'RED' = 'BLUE'
-    ): { margin: number; leverage: number; sl: number; tp1: number; tp2: number; tp3: number; tp: number; tp1Ratio: number; tp2Ratio: number; tp3Ratio: number; reason: string; isPyramidEligible?: boolean } => {
+    ): { margin: number; leverage: number; limitPrice: number; sl: number; tp1: number; tp2: number; tp3: number; tp: number; tp1Ratio: number; tp2Ratio: number; tp3Ratio: number; reason: string; isPyramidEligible?: boolean } => {
 
         if (signal.actionGrade === 'F') {
-            return { margin: 0, leverage: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: "Signal Grade F. Do not trade." };
+            return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: "Signal Grade F. Do not trade." };
         }
 
         // SL/TP logic remains pure technical (ATR based)
@@ -1537,16 +1576,23 @@ export const AnalysisEngine = {
         // [Phase 16] 2.0% for S-Grade Capital, else 1.5%
         let maxRiskPct = mode === 'BLUE' ? (isHighConviction ? 0.020 : 0.015) : 0.005;
 
+        // --- HP1 v114: The Meta-Cognitive Predator (Meta-Labeling) ---
+        if (signal.metaLabelingFalsePositive) {
+            maxRiskPct = 0; // Force 0% risk
+            leverage = 0;
+            riskOracleMsg += `[🧠 Meta-Labeling: False Positive (가짜 신호) 감지. 비중 0% 강제 차단] `;
+        }
+
         // HP1 v53.0: The Risk Oracle (Monte Carlo Risk of Ruin & RSI Divergence Sweep)
-        if (signal.monteCarloRiskOfRuin !== undefined) {
+        if (signal.monteCarloRiskOfRuin !== undefined && maxRiskPct > 0) {
             if (signal.monteCarloRiskOfRuin > 10) {
                 // If Risk of Ruin is > 10%, slash Kelly risk fraction by half
                 maxRiskPct *= 0.5;
-                riskOracleMsg = `[⚠️ RoR ${signal.monteCarloRiskOfRuin.toFixed(1)}%>10%: Risk Halved] `;
+                riskOracleMsg += `[⚠️ RoR ${signal.monteCarloRiskOfRuin.toFixed(1)}%>10%: Risk Halved] `;
             } else if (signal.monteCarloRiskOfRuin < 2 && signal.rsiDivergenceSweepConfirmed) {
                 // Extremely safe setup + Divergence confirmation -> Boost by 25%
                 maxRiskPct *= 1.25;
-                riskOracleMsg = `[🛡️ RoR <2% + Div Sweep: Risk +25%] `;
+                riskOracleMsg += `[🛡️ RoR <2% + Div Sweep: Risk +25%] `;
             }
         }
 
@@ -1569,7 +1615,9 @@ export const AnalysisEngine = {
 
         const reason = `[${mode}] ${riskOracleMsg}${isHighConviction ? '🔥 S급 공격 진입: ' : ''}Max Risk ${(maxRiskPct * 100).toFixed(2)}% ($${maxLossUSDT.toFixed(1)}). SL ${slDist.toFixed(1)} points away. Set Margin to $${marginUSDT.toFixed(0)} with ${leverage}x Lev.`;
 
-        return { margin: marginUSDT, leverage, sl, tp1, tp2, tp3, tp, tp1Ratio, tp2Ratio, tp3Ratio, reason, isPyramidEligible };
+        const limitPrice = currentPrice; // v113 Maker's Gambit: Post-Only Limit defaults to current market price but entered as a limit order
+
+        return { margin: marginUSDT, leverage, limitPrice, sl, tp1, tp2, tp3, tp, tp1Ratio, tp2Ratio, tp3Ratio, reason, isPyramidEligible };
     },
 
     // --- HP1 Extension: The SQN & ATR Pinnacle Helpers ---
