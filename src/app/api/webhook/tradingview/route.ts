@@ -274,6 +274,10 @@ export async function POST(req: Request) {
         }
 
         // --- HP1 v116-D 마이크로 구조 심화: The Intraday Micro-Sniper (하드블록/베일아웃) ---
+        if (analysis.isWaeDeadZoneBlocked) {
+             console.log("🛑 WAE Dead Zone Block: 변동성/거래량 실종(Chop Market) 상태. 신호 송출 차단.");
+             return NextResponse.json({ success: true, status: `Blocked by WAE Dead Zone (Low Volatility)` });
+        }
         if (analysis.isCumDeltaDivergenceBlocked) {
              console.log("🛑 Cum-Delta Divergence Block: 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.");
              return NextResponse.json({ success: true, status: `Blocked by Missing Cum-Delta Divergence` });

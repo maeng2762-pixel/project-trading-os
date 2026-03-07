@@ -170,6 +170,12 @@ export interface AnalysisResult {
     isCircuitBreakerActive?: boolean;
     recentLossCount?: number;
     leverageMultiplier?: number;
+
+    // --- HP1 v116-D 파이널 어셈블리: The Ultimate Intraday Machine ---
+    isWaeDeadZoneBlocked?: boolean;
+    isIcebergSustainConfirmed?: boolean;
+    isSmcObCloseMitigated?: boolean;
+    isOiReversalDivergenceDetected?: boolean;
 }
 
 export interface ExtData {
@@ -286,6 +292,14 @@ export interface ExtData {
     inverseMomentumBailout?: boolean; // 모멘텀 역방향 꺾임 발생 (가짜 돌파 확인)
     breakoutSignalCandleHigh?: number; // 스퀴즈 돌파 신호 캔들 고점
     breakoutSignalCandleLow?: number; // 스퀴즈 돌파 신호 캔들 저점
+
+    // --- HP1 v116-D 파이널 어셈블리: The Ultimate Intraday Machine ---
+    waeExplosionValue?: number;
+    waeDeadZoneLevel?: number;
+    icebergReloadCount?: number;
+    icebergPriceLevel?: number;
+    isObBodyPierced?: boolean; // For SMC Close-Mitigation
+    oiDivergenceType?: 'BREAKOUT_FAIL' | 'REVERSAL_CONFIRM' | 'NONE';
 }
 
 // --- Basic Indicator Functions ---
@@ -899,7 +913,7 @@ export const AnalysisEngine = {
                 reasons.push(`🌐 Trends FOMO 승인 (${fomoScore.toFixed(2)}>0.5) -> 모멘텀 확증`);
             }
         }
-        const rawDirection = rawScore >= 60 ? 'LONG' : (rawScore <= 40 ? 'SHORT' : 'NEUTRAL');
+        let rawDirection: 'LONG' | 'SHORT' | 'NEUTRAL' = rawScore >= 60 ? 'LONG' : (rawScore <= 40 ? 'SHORT' : 'NEUTRAL');
 
         // Apply VWAP & Sentiment blocks here
         if (rawDirection === 'LONG') {
@@ -1083,6 +1097,12 @@ export const AnalysisEngine = {
         let recentLossCount = 0;
         let leverageMultiplier = 1.0;
 
+        // --- HP1 v116-D 파이널 어셈블리: The Ultimate Intraday Machine ---
+        let isWaeDeadZoneBlocked = false;
+        let isIcebergSustainConfirmed = false;
+        let isSmcObCloseMitigated = false;
+        let isOiReversalDivergenceDetected = false;
+
         // 거시적 가치 영역 필터에 막히지 않은 경우에만 스캘핑 허용
         if (!isValueMigrationBlocked) {
             
@@ -1145,6 +1165,35 @@ export const AnalysisEngine = {
                     isCircuitBreakerActive = true;
                     reasons.push(`🛡️ [Circuit Breaker] 데이 모드 잇단 3연패 감지. 시장 레짐 부적합(Toxic)으로 판단하여 12시간 셧다운을 발동합니다.`);
                 }
+            }
+
+            // v116-D 어셈블리: WAE Dead Zone Chop-Filter (횡보장 차단기)
+            if (extData?.waeExplosionValue !== undefined && extData?.waeDeadZoneLevel !== undefined) {
+                if (extData.waeExplosionValue < extData.waeDeadZoneLevel) {
+                    isWaeDeadZoneBlocked = true;
+                    reasons.push(`🛑 [WAE Chop-Filter] 변동성 폭발 지수(${extData.waeExplosionValue.toFixed(1)})가 Dead Zone(${extData.waeDeadZoneLevel.toFixed(1)}) 내부에 갇혀 있습니다. 횡보장 노이즈로 판단하여 모든 타점을 강제 폐기합니다.`);
+                }
+            }
+
+            // v116-D 어셈블리: MBO Iceberg Liquidity Tracker (아이스버그 추적기)
+            if (extData?.icebergReloadCount && extData.icebergReloadCount >= 5) { // 5회 이상 리필
+                isIcebergSustainConfirmed = true;
+                const icebergSide = currentPrice < (extData.icebergPriceLevel || 0) ? 'RESISTANCE' : 'SUPPORT';
+                reasons.push(`🧊 [Iceberg Tracker] $${extData.icebergPriceLevel} 가격대에서 기관의 기계적 리필(${extData.icebergReloadCount}회) 포착. Ultimate ${icebergSide}로 격상하여 방패로 활용합니다.`);
+            }
+
+            // v116-D 어셈블리: SMC OB Close-Mitigation Rules (오더블록 무효화 원칙)
+            if (extData?.isObBodyPierced) {
+                isSmcObCloseMitigated = true;
+                reasons.push(`🧱 [SMC OB Update] 오더블록이 캔들 종가(Body Close)로 관통되었습니다. 레벨 유효성 상실로 판단하여 맵에서 영구 삭제합니다.`);
+            }
+
+            // v116-D 어셈블리: OI Reversal Divergence Sniper (미결제약정 반전 다이버전스)
+            if (extData?.oiDivergenceType === 'BREAKOUT_FAIL') {
+                isOiReversalDivergenceDetected = true;
+                // 전략 스위칭: 돌파 -> 역추세
+                rawDirection = rawDirection === 'LONG' ? 'SHORT' : 'LONG';
+                reasons.push(`📉 [OI Reversal Sniper] 극점 갱신 중 OI 감소 포착(기존 포지션 이익실험). 가짜 돌파로 규정하고 즉시 역추세(Fade) 포지션으로 스위칭합니다!`);
             }
 
             if (extData?.liquidationSweepDetected && extData?.rsiDivergence15m) {
@@ -1852,7 +1901,12 @@ export const AnalysisEngine = {
             isFootprintReverseBailout,
             isCircuitBreakerActive,
             recentLossCount,
-            leverageMultiplier
+            leverageMultiplier,
+            // HP1 v116-D 파이널 어셈블리: The Ultimate Intraday Machine
+            isWaeDeadZoneBlocked,
+            isIcebergSustainConfirmed,
+            isSmcObCloseMitigated,
+            isOiReversalDivergenceDetected
         } as any; 
     },
 
@@ -1876,13 +1930,14 @@ export const AnalysisEngine = {
             signal.reasons.push("🛡️ [Risk Scale-down] 2연패 감지로 인해 심리 보호 차원에서 레버리지를 50% 하향 조정합니다.");
         }
 
-        if (signal.actionGrade === 'F' || signal.isLasso15mBlocked || signal.isCumDeltaDivergenceBlocked || signal.isFootprintBailoutActive || signal.isInverseMomentumBailoutActive || signal.isFootprintReverseBailout) {
+        if (signal.actionGrade === 'F' || signal.isLasso15mBlocked || signal.isCumDeltaDivergenceBlocked || signal.isFootprintBailoutActive || signal.isInverseMomentumBailoutActive || signal.isFootprintReverseBailout || signal.isWaeDeadZoneBlocked) {
             let reason = "Signal Grade F. Do not trade.";
             if (signal.isLasso15mBlocked) reason = "🚨 [LASSO 15M Mismatch] 모델 예측과 진입 방향 이탈로 켈리 비중 0% (진입 차단).";
             else if (signal.isCumDeltaDivergenceBlocked) reason = "🚨 [Cum-Delta Filter] 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.";
             else if (signal.isFootprintBailoutActive) reason = "🚨 [Footprint Bailout] 델타와 캔들의 모순 트랩 감지! 시장가 강제 대피(Bailout).";
             else if (signal.isInverseMomentumBailoutActive) reason = "🚨 [Squeeze Bailout] 스퀴즈 돌파 직후 꺾이는 가짜 모멘텀 감지! 즉시 손절 탈출(Bailout).";
             else if (signal.isFootprintReverseBailout) reason = "🚨 [Footprint Reversal Warning] 포지션 반대 방향 수급 역전 감지! 무조건 즉시 대피(Bailout).";
+            else if (signal.isWaeDeadZoneBlocked) reason = "🚨 [WAE Dead Zone] 변동성/거래량 실종 구간. 횡보장 휩소 방지를 위해 진입을 원천 차단합니다.";
 
             return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason };
         }
