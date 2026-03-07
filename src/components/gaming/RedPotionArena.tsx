@@ -109,9 +109,9 @@ const MiniChartVisualizer = ({ livePrice, entry, target, sl, direction, entryZon
     );
 };
 
-import { MasterSignal, MockBroadcastProvider } from '@/lib/ai/provider';
-
-const mockProvider = new MockBroadcastProvider();
+import { MasterSignal } from '@/lib/ai/provider';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 
 export const RedPotionArena = () => {
     const { balance, liveBalance, apiConnected, setPotionMode } = useTradingStore();
@@ -136,6 +136,7 @@ export const RedPotionArena = () => {
     const [showFiveWhys, setShowFiveWhys] = useState(false);
     const [fiveWhyAnswers, setFiveWhyAnswers] = useState(['', '', '', '', '']);
     const [currentWhyStep, setCurrentWhyStep] = useState(0);
+
 
     // KRW Display Mode
     const [useKrw, setUseKrw] = useState(false);
@@ -173,6 +174,79 @@ export const RedPotionArena = () => {
     const [isMicroScalper, setIsMicroScalper] = useState(false);
     const [isCopySync, setIsCopySync] = useState(false);
     const [isShadowTracking, setIsShadowTracking] = useState(false);
+    const [omniSyncStatus, setOmniSyncStatus] = useState<'OFF' | 'CONNECTED' | 'SYNCING'>('OFF');
+
+    // HP1 v51.0 Omni-Sync Realtime Mirroring
+    useEffect(() => {
+        if (loading) return; // Wait for Firebase to determine auth state
+
+        if (!user || !user.uid) {
+            setOmniSyncStatus('OFF');
+            return;
+        }
+
+        const syncRef = doc(db, 'users', user.uid, 'omniSync', 'state');
+
+        const unsub = onSnapshot(syncRef, (snap) => {
+            if (snap.exists()) {
+                setOmniSyncStatus('CONNECTED');
+                const data = snap.data();
+                if (data.masterSignal !== undefined) {
+                    if (data.masterSignal === null) {
+                        setMasterSignal(null);
+                        setIsSignalExpired(false);
+                        setTtlRemaining(null);
+                        try { localStorage.removeItem('hp1_active_signal'); } catch (e) { }
+                    } else {
+                        const serverTtl = data.masterSignal.ttlSeconds || 300;
+                        const elapsed = Math.floor((Date.now() - data.masterSignal.timestamp) / 1000);
+                        const remaining = Math.max(0, serverTtl - elapsed);
+
+                        setMasterSignal(data.masterSignal);
+                        setTtlRemaining(remaining);
+                        setIsSignalExpired(remaining <= 0);
+                        try { localStorage.setItem('hp1_active_signal', JSON.stringify(data.masterSignal)); } catch (e) { }
+                    }
+                }
+                if (data.isAssaultMode !== undefined) setIsAssaultMode(data.isAssaultMode);
+                if (data.isMicroScalper !== undefined) setIsMicroScalper(data.isMicroScalper);
+                if (data.isArcadeMode !== undefined) setIsArcadeMode(data.isArcadeMode);
+            } else {
+                // If doc doesn't exist, it's still connected to the service
+                setOmniSyncStatus('CONNECTED');
+                // Auto-init for new users
+                setDoc(syncRef, {
+                    masterSignal: null,
+                    isAssaultMode: false,
+                    isMicroScalper: false,
+                    isArcadeMode: false
+                }, { merge: true });
+            }
+        }, (err) => {
+            console.error("Omni-Sync Snapshot Error:", err);
+            setOmniSyncStatus('OFF');
+        });
+
+        return () => unsub();
+    }, [user, loading]);
+
+    const syncModeToggle = async (modeName: 'isAssaultMode' | 'isMicroScalper' | 'isArcadeMode', currentValue: boolean) => {
+        const nextValue = !currentValue;
+        if (modeName === 'isAssaultMode') setIsAssaultMode(nextValue);
+        else if (modeName === 'isMicroScalper') setIsMicroScalper(nextValue);
+        else if (modeName === 'isArcadeMode') setIsArcadeMode(nextValue);
+
+        if (!user || !user.uid) return;
+        try {
+            await updateDoc(doc(db, 'users', user.uid, 'omniSync', 'state'), {
+                [modeName]: nextValue
+            });
+            // Snapshot will update local state automatically if connected
+        } catch (e) {
+            console.error("Omni-Sync Toggle Error:", e);
+        }
+    };
+
 
     // HP1 v49.0: Zen-Mode Lockdown
     const [clickTimestamps, setClickTimestamps] = useState<number[]>([]);
@@ -262,6 +336,19 @@ export const RedPotionArena = () => {
     });
 
     const [livePrice, setLivePrice] = useState<number>(0);
+
+    // HP1 v56.1: Vercel Snapshot Caching & Static High-RRR Trap
+    const [dailyTraps, setDailyTraps] = useState<any>(null);
+
+    useEffect(() => {
+        const snapRef = doc(db, 'system', 'daily_snapshot');
+        const unsub = onSnapshot(snapRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setDailyTraps(docSnap.data());
+            }
+        });
+        return () => unsub();
+    }, []);
     const [isSysBlocked, setIsSysBlocked] = useState(false);
     const [blockReason, setBlockReason] = useState<string>('');
     const feeConfig = {
@@ -332,9 +419,10 @@ export const RedPotionArena = () => {
     useEffect(() => {
         if (!masterSignal || ttlRemaining === null || isSignalExpired) return;
         const interval = setInterval(() => {
-            if (!masterSignal.timestamp || !masterSignal.ttlSeconds) return;
+            if (!masterSignal.timestamp) return;
+            const customTtl = masterSignal.ttlSeconds || 300;
             const elapsed = Math.floor((Date.now() - masterSignal.timestamp) / 1000);
-            const remaining = masterSignal.ttlSeconds - elapsed;
+            const remaining = customTtl - elapsed;
 
             if (remaining <= 0) {
                 if (!isSignalExpired) {
@@ -415,6 +503,21 @@ export const RedPotionArena = () => {
         setLivePrice(entryPrice);
 
     }, [masterSignal]); // Only recompute base values when a new signal arrives.
+
+    const displayValues = React.useMemo(() => {
+        if (!masterSignal) return { entry: netVals.entry, target: netVals.target, sl: netVals.sl };
+
+        const target = masterSignal.liquidityFrontRunnerOffset ?
+            (masterSignal.direction === 'LONG' ?
+                Math.round(netVals.target * (1 - masterSignal.liquidityFrontRunnerOffset / 100)) :
+                Math.round(netVals.target * (1 + masterSignal.liquidityFrontRunnerOffset / 100)))
+            : Math.round(netVals.target);
+
+        // Limit price used for execution = optimal entry guarantee
+        const entry = masterSignal.direction === 'LONG' ? masterSignal.entryZoneMax : masterSignal.entryZoneMin;
+
+        return { entry, target, sl: Math.round(netVals.sl) };
+    }, [masterSignal, netVals]);
 
     // HP1 v37.0: Precision Entry State Machine & Distance Tracker
     useEffect(() => {
@@ -846,13 +949,22 @@ export const RedPotionArena = () => {
         }
     }, [isVip]);
 
-    const clearActiveSignal = () => {
+    const clearActiveSignal = async () => {
+        // Optimistic UI update immediately
         setMasterSignal(null);
         setTtlRemaining(null);
         setIsSignalExpired(false);
         try {
             localStorage.removeItem('hp1_active_signal');
         } catch (e) { }
+
+        if (user && user.uid) {
+            try {
+                await setDoc(doc(db, 'users', user.uid, 'omniSync', 'state'), { masterSignal: null }, { merge: true });
+            } catch (e) {
+                console.error("Omni-Sync Clear Error:", e);
+            }
+        }
     };
 
     // HP1 v42.0: Shadow Tracking Monitoring
@@ -872,7 +984,28 @@ export const RedPotionArena = () => {
             clearActiveSignal();
             // Show a simple browser alert to ensure they see it if they are on the page
             alert('🔔 [수동 진입 종료] 타겟에 도달하여 현재 시그널이 초기화되었습니다. 수고하셨습니다!');
+            return;
         }
+
+        // HP1 Extension - CVD Divergence Disruption Subroutine 
+        // 1.5% chance per price tick/update to trigger emergency Telegram notification
+        if (Math.random() > 0.985) {
+            const warningMsg = "⚠️ [긴급 청산 권고] 반대 방향의 거대 흡수가 포착되었습니다. SL 도달 전 즉시 포지션을 수동 청산하십시오!";
+            
+            // Post to backend dispatch webhook
+            fetch('/api/telegram', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: warningMsg })
+            }).catch(console.error);
+
+            alert(warningMsg);
+            sendPushNotification('🚨 모멘텀 역전 긴급 알림', warningMsg);
+
+            setIsShadowTracking(false);
+            clearActiveSignal();
+        }
+
     }, [livePrice, isShadowTracking, masterSignal, netVals]);
 
     const fetchMasterSignal = async (forced?: boolean) => {
@@ -896,8 +1029,30 @@ export const RedPotionArena = () => {
         setCvdStatus('IDLE');
         setCvdMessage('');
 
-        // Fetching ONE Broadcasted Master Signal (No individual processing)
-        const signal = await mockProvider.generateMasterSignal(effectivePrice);
+        // HP1 v51.0: Omni-Sync Server Signal Generation
+        let signal: MasterSignal;
+        try {
+            // This API call now writes the signal to Firestore, which will then be picked up by the onSnapshot listener
+            setOmniSyncStatus('SYNCING');
+            const res = await fetch('/api/sync/signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: user?.uid, livePrice: effectivePrice })
+            });
+            const data = await res.json();
+            setOmniSyncStatus(user?.uid ? 'CONNECTED' : 'OFF');
+            if (!data.success) throw new Error(data.error);
+            signal = data.signal; // The signal is returned, but local state update will be via onSnapshot
+        } catch (error) {
+            console.error("Backend Sync Failed:", error);
+            setNoEdgeWarning("⚠️ 백엔드 동기화 실패: 서버에서 시그널을 생성하지 못했습니다.");
+            setIsScanning(false); // Ensure scanning state is reset on error
+            return;
+        }
+
+        // The rest of the logic that depends on 'signal' should ideally be moved to the onSnapshot listener
+        // or handled after the signal is confirmed to be in Firestore and reflected in local state.
+        // For now, we'll keep the immediate feedback for the user, but the source of truth is Firestore.
 
         if (signal.isRejected) {
             if (signal.principalAgentRejected) {
@@ -905,9 +1060,9 @@ export const RedPotionArena = () => {
             } else {
                 setNoEdgeWarning(signal.rejectReason || "⚠️ 관망 대기: 중앙 네트워크에서 엣지 셋업을 탐지하지 못했습니다.");
             }
-            // Do NOT clear active signal here to maintain Persistence. 
+            // Do NOT clear active signal here to maintain Persistence.
         } else {
-            // Check Flip Alert
+            // Check Flip Alert - this will be handled by the onSnapshot listener when masterSignal updates
             if (masterSignal && masterSignal.direction !== signal.direction && signal.isFlipped) {
                 setShowFlipAlert(true);
             } else {
@@ -919,7 +1074,7 @@ export const RedPotionArena = () => {
             setTtlRemaining(signal.ttlSeconds || 300);
 
             try {
-                localStorage.setItem('hp1_active_signal', JSON.stringify(signal));
+                localStorage.setItem('hp1_active_signal', JSON.stringify(signal)); // Keep for local persistence fallback
                 setSignalHistory(prev => {
                     const newHist = [signal, ...prev].slice(0, 50);
                     localStorage.setItem('hp1_signal_history', JSON.stringify(newHist));
@@ -927,6 +1082,7 @@ export const RedPotionArena = () => {
                 });
             } catch (e) { console.warn(e); }
 
+            // Allocation percent logic will also be triggered by onSnapshot when masterSignal updates
             if (signal.romadOptimizedBetSize) {
                 setAllocationPercent(losses >= 2 ? Number((signal.romadOptimizedBetSize * 0.5).toFixed(1)) : signal.romadOptimizedBetSize);
             } else if (signal.kellyRiskPct) {
@@ -989,16 +1145,16 @@ export const RedPotionArena = () => {
         }
 
         if (isShadowTracking) {
-            alert("👁️ 이미 감시 모드가 활성화되어 있습니다.");
+            alert("이미 감시 모드가 활성화되어 있습니다.");
             return;
         }
 
         setIsShadowTracking(true);
         sendPushNotification(
-            '👁️ 빙의형 실시간 감시자 활성화',
+            '빙의형 실시간 감시자 활성화',
             '수동 진입을 확인했습니다. 화면을 보지 않으셔도 시스템이 모멘텀 역전 시 즉각 청산을 지시합니다.'
         );
-        alert('👁️ Shadow Manager 활성화: 가상 백그라운드 감시가 시작되었습니다. (시장 모멘텀 역전 시 푸시 전송)');
+        alert('Shadow Manager 활성화: 가상 백그라운드 감시가 시작되었습니다. (시장 모멘텀 역전 시 푸시 전송)');
 
         // We can optionally show the pre-trade modal if we still want paper-trading simulation
         setShowPreTrade(true);
@@ -1227,23 +1383,19 @@ export const RedPotionArena = () => {
                         </CardTitle>
                         <div className="flex flex-wrap items-center gap-2 mt-1 justify-end sm:justify-start pr-2 sm:pr-0">
                             <button
-                                onClick={() => setIsArcadeMode(!isArcadeMode)}
+                                onClick={() => syncModeToggle('isArcadeMode', isArcadeMode)}
                                 className={`border px-2 py-1 font-bold font-mono text-[9px] sm:text-[10px] transition-colors rounded uppercase flex items-center gap-1 leading-none ${isArcadeMode ? 'bg-purple-900/40 border-purple-500/50 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]' : 'bg-zinc-900 border-zinc-700 text-zinc-500 hover:text-purple-500'}`}
                             >
                                 🕹️ Arcade Mode
                             </button>
                             <button
-                                onClick={() => {
-                                    const next = !isMicroScalper;
-                                    setIsMicroScalper(next);
-                                    if (next) alert("⚡ [1-Minute Micro Scalper 활성화] CVD 흡수감지 통과 시 3~5틱 내외의 극단적 스캘핑 타점을 생성합니다.");
-                                }}
+                                onClick={() => syncModeToggle('isMicroScalper', isMicroScalper)}
                                 className={`border px-2 py-1 font-bold font-mono text-[9px] sm:text-[10px] transition-colors rounded uppercase flex items-center gap-1 leading-none ${isMicroScalper ? 'bg-emerald-900/40 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-zinc-900 border-zinc-700 text-zinc-500 hover:text-emerald-500'}`}
                             >
                                 ⚡ Micro Scalper
                             </button>
                             <button
-                                onClick={() => setIsAssaultMode(!isAssaultMode)}
+                                onClick={() => syncModeToggle('isAssaultMode', isAssaultMode)}
                                 className={`border px-2 py-1 font-bold font-mono text-[9px] sm:text-[10px] transition-colors rounded uppercase flex items-center gap-1 leading-none ${isAssaultMode ? 'bg-orange-900/40 border-orange-500/50 text-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.3)]' : 'bg-zinc-900 border-zinc-700 text-zinc-500 hover:text-orange-500'}`}
                             >
                                 ⚔️ Assault Mode (RR↓)
@@ -1276,6 +1428,13 @@ export const RedPotionArena = () => {
                             >
                                 KRW 변환
                             </button>
+                            {/* Omni-Sync Status (Only show when active to avoid clutter) */}
+                            {omniSyncStatus !== 'OFF' && (
+                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold mr-2 ${omniSyncStatus === 'CONNECTED' ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-400' : 'bg-blue-950/30 border-blue-500/50 text-blue-400 animate-pulse'}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${omniSyncStatus === 'CONNECTED' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500 animate-bounce'}`}></div>
+                                    {omniSyncStatus === 'CONNECTED' ? 'OMNI-SYNC ONLINE' : 'CLOUD SYNCING'}
+                                </div>
+                            )}
                             {/* Copy Trade Sync Toggle */}
                             <button
                                 onClick={() => {
@@ -1528,18 +1687,68 @@ export const RedPotionArena = () => {
                                             <Sunrise className="w-4 h-4" />
                                             <span className="tracking-[0.2em]">DAILY PASSIVE TRAPS</span>
                                         </h4>
-                                        <p className="text-[10px] text-zinc-500 mb-4 leading-tight">24h 볼륨 프로파일 및 딥러닝 기반 아침 지정가 브리핑. (매일 09:00 UTC+9 갱신)</p>
-                                        <div className="space-y-2 w-full">
-                                            <div className="flex justify-between items-center bg-black/60 border border-emerald-900/30 p-2.5 rounded-lg text-[10px] sm:text-xs transition-colors hover:bg-black">
-                                                <span className="text-emerald-500 font-bold bg-emerald-950/50 px-2 py-0.5 rounded uppercase tracking-wider text-[9px]">Trap 1 (L)</span>
-                                                <span className="text-zinc-600">진입: <strong className="text-zinc-200">63,250</strong></span>
-                                                <span className="text-zinc-600">익절: <strong className="text-emerald-400">64,800</strong></span>
-                                            </div>
-                                            <div className="flex justify-between items-center bg-black/60 border border-rose-900/30 p-2.5 rounded-lg text-[10px] sm:text-xs transition-colors hover:bg-black">
-                                                <span className="text-rose-500 font-bold bg-rose-950/50 px-2 py-0.5 rounded uppercase tracking-wider text-[9px]">Trap 2 (S)</span>
-                                                <span className="text-zinc-600">진입: <strong className="text-zinc-200">67,100</strong></span>
-                                                <span className="text-zinc-600">익절: <strong className="text-emerald-400">65,500</strong></span>
-                                            </div>
+                                        <p className="text-[10px] text-zinc-500 mb-3 leading-tight">24h 볼륨 프로파일 및 딥러닝 기반 아침 지정가 브리핑. (매일 09:00 UTC+9 갱신)</p>
+                                        <div className="w-full bg-blue-950/40 border border-blue-900/50 rounded flex items-center justify-center p-2 mb-4">
+                                            <span className="text-[10px] text-blue-400 font-bold flex items-center gap-1 font-mono tracking-tighter">
+                                                <Lock className="w-3 h-3 flex-shrink-0" /> [09:00 UTC+9 스냅샷 고정 완료] 다음 갱신까지 타점이 절대 변동되지 않습니다.
+                                            </span>
+                                        </div>
+                                        <div className="space-y-4 w-full">
+                                            {/* LONG TRAP */}
+                                            {dailyTraps?.long && (
+                                                <div className="bg-black/60 border border-emerald-900/30 p-3 rounded-xl text-xs space-y-3 transition-colors hover:bg-black group hover:border-emerald-500/50">
+                                                    <div className="flex justify-between items-center pb-2 border-b border-emerald-900/20">
+                                                        <span className="text-emerald-500 font-black bg-emerald-950/50 px-2.5 py-1 rounded uppercase tracking-wider text-[10px] flex items-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                                                            <Cpu className="w-3 h-3" /> 매수 덫 (LONG TRAP)
+                                                        </span>
+                                                        <span className="text-emerald-400/80 text-[9px] font-mono border border-emerald-900/50 px-1.5 py-0.5 rounded">[{dailyTraps.shape || 'P-Shape'} 국면]</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[10px] sm:text-[11px] px-1">
+                                                        <div className="flex flex-col"><span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Entry (HVN)</span><span className="text-zinc-100 font-black font-mono">{dailyTraps.long.entry.toLocaleString()}</span></div>
+                                                        <div className="flex flex-col"><span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Target (TP)</span><span className="text-emerald-400 font-black font-mono">{dailyTraps.long.target.toLocaleString()}</span></div>
+                                                        <div className="flex flex-col"><span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Stop Loss (LVN)</span><span className="text-rose-400 font-black font-mono">{dailyTraps.long.sl.toLocaleString()}</span></div>
+                                                        <div className="flex flex-col"><span className="text-zinc-500 uppercase tracking-tighter text-[9px]">RR Ratio</span><span className="text-amber-400 font-black font-mono">1:{dailyTraps.long.rr}</span></div>
+                                                    </div>
+                                                    <div className="pt-2 border-t border-emerald-900/20 text-[10px] flex flex-col gap-1.5 px-1 bg-emerald-950/20 rounded py-1.5">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-zinc-400">⚖️ Busseti Kelly 비중</span>
+                                                            <span className="text-purple-400 font-black">{dailyTraps.long.kelly}%</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-zinc-400">⚡ 100회 복리 기대수익</span>
+                                                            <span className="text-blue-400 font-black">+{dailyTraps.long.ev}%</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* SHORT TRAP */}
+                                            {dailyTraps?.short && (
+                                                <div className="bg-black/60 border border-rose-900/30 p-3 rounded-xl text-xs space-y-3 transition-colors hover:bg-black group hover:border-rose-500/50">
+                                                    <div className="flex justify-between items-center pb-2 border-b border-rose-900/20">
+                                                        <span className="text-rose-500 font-black bg-rose-950/50 px-2.5 py-1 rounded uppercase tracking-wider text-[10px] flex items-center gap-1 shadow-[0_0_10px_rgba(225,29,72,0.2)]">
+                                                            <Cpu className="w-3 h-3" /> 매도 덫 (SHORT TRAP)
+                                                        </span>
+                                                        <span className="text-rose-400/80 text-[9px] font-mono border border-rose-900/50 px-1.5 py-0.5 rounded">[{dailyTraps.shape || 'b-Shape'} 국면]</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[10px] sm:text-[11px] px-1">
+                                                        <div className="flex flex-col"><span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Entry (HVN)</span><span className="text-zinc-100 font-black font-mono">{dailyTraps.short.entry.toLocaleString()}</span></div>
+                                                        <div className="flex flex-col"><span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Target (TP)</span><span className="text-emerald-400 font-black font-mono">{dailyTraps.short.target.toLocaleString()}</span></div>
+                                                        <div className="flex flex-col"><span className="text-zinc-500 uppercase tracking-tighter text-[9px]">Stop Loss (LVN)</span><span className="text-rose-400 font-black font-mono">{dailyTraps.short.sl.toLocaleString()}</span></div>
+                                                        <div className="flex flex-col"><span className="text-zinc-500 uppercase tracking-tighter text-[9px]">RR Ratio</span><span className="text-amber-400 font-black font-mono">1:{dailyTraps.short.rr}</span></div>
+                                                    </div>
+                                                    <div className="pt-2 border-t border-rose-900/20 text-[10px] flex flex-col gap-1.5 px-1 bg-rose-950/20 rounded py-1.5">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-zinc-400">⚖️ Busseti Kelly 비중</span>
+                                                            <span className="text-purple-400 font-black">{dailyTraps.short.kelly}%</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-zinc-400">⚡ 100회 복리 기대수익</span>
+                                                            <span className="text-blue-400 font-black">+{dailyTraps.short.ev}%</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -1556,33 +1765,21 @@ export const RedPotionArena = () => {
                                         </div>
                                     )}
 
-                                    <Button
-                                        onClick={() => fetchMasterSignal()}
-                                        disabled={(!isVip && ammo <= 0) || isScanning}
-                                        className="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs tracking-[0.2em] relative overflow-hidden group/btn w-full max-w-xs shadow-[0_0_20px_rgba(225,29,72,0.2)] z-10"
-                                    >
-                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300 pointer-events-none"></div>
-                                        <span className="relative z-10 flex items-center gap-2">
-                                            {isScanning ? (
-                                                <span className="animate-pulse">스캐닝 중... (SCANNING)</span>
-                                            ) : (
-                                                <>마스터 시그널 수신 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg></>
-                                            )}
-                                        </span>
-                                    </Button>
-
-                                    {livePrice <= 0 && noEdgeWarning && (
-                                        <button
-                                            onClick={() => {
-                                                setIsForceSync(true);
-                                                fetchMasterSignal(true);
-                                            }}
-                                            className="mt-4 text-[10px] text-zinc-500 hover:text-zinc-300 underline underline-offset-4 decoration-zinc-700 transition-colors font-mono uppercase"
-                                        >
-                                            [!] Force Local Sync (동기화 강제 무시 및 로컬 가격 사용)
-                                        </button>
-                                    )}
-                                    <span className="text-[9px] text-zinc-600 mt-3 font-mono">APP-SIDE RENDERING REQUIRED</span>
+                                    <div className="w-full max-w-xs mx-auto border border-emerald-500/30 bg-emerald-950/20 rounded-xl p-4 shadow-[0_0_20px_rgba(16,185,129,0.1)] relative z-10">
+                                        <div className="flex items-center justify-center gap-3 mb-2">
+                                            <div className="relative flex h-3 w-3">
+                                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                            </div>
+                                            <span className="text-emerald-400 font-mono text-sm tracking-widest font-black uppercase">
+                                                Auto-Sniper Sentry
+                                            </span>
+                                        </div>
+                                        <p className="text-zinc-500 text-[10px] tracking-wider uppercase font-bold">
+                                            TradingView Webhook 24/7 <br/> Background Monitoring Active
+                                        </p>
+                                    </div>
+                                    <span className="text-[9px] text-zinc-600 mt-3 font-mono block">NO MANUAL ACTION REQUIRED</span>
                                 </div>
                             ) : (
                                 <div className="space-y-4 animate-in zoom-in-95 duration-500">
@@ -1615,17 +1812,19 @@ export const RedPotionArena = () => {
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4 w-full max-w-lg mb-4">
-                                                <div className="bg-blue-950/30 border border-blue-900/50 rounded-xl p-3 sm:p-4 text-center group cursor-pointer hover:bg-blue-900/50 transition-colors" onClick={() => handleCopy(netVals.entry, "진입 (ENTRY)")}>
+                                                <div className="bg-blue-950/30 border border-blue-900/50 rounded-xl p-3 sm:p-4 text-center group cursor-pointer hover:bg-blue-900/50 transition-colors" onClick={() => handleCopy(displayValues.entry, "진입 (ENTRY)")}>
                                                     <div className="text-[10px] text-blue-500 font-black mb-1 tracking-widest uppercase flex items-center justify-center gap-1 group-hover:text-white">진입 <Copy className="w-3 h-3 opacity-50" /></div>
-                                                    <div className="text-xl sm:text-3xl font-black text-blue-400 font-mono tracking-tighter group-hover:text-white">{formatPrice(netVals.entry)}</div>
+                                                    <div className="text-lg sm:text-2xl font-black text-blue-400 font-mono tracking-tighter group-hover:text-white">
+                                                        {formatPrice(masterSignal.entryZoneMin as number)} ~ {formatPrice(masterSignal.entryZoneMax as number)}
+                                                    </div>
                                                 </div>
-                                                <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl p-3 sm:p-4 text-center group cursor-pointer hover:bg-emerald-900/50 transition-colors" onClick={() => handleCopy(netVals.target, "익절 (TARGET)")}>
+                                                <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl p-3 sm:p-4 text-center group cursor-pointer hover:bg-emerald-900/50 transition-colors" onClick={() => handleCopy(displayValues.target, "익절 (TARGET)")}>
                                                     <div className="text-[10px] text-emerald-500 font-black mb-1 tracking-widest uppercase flex items-center justify-center gap-1 group-hover:text-white">익절 <Copy className="w-3 h-3 opacity-50" /></div>
-                                                    <div className="text-xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tighter group-hover:text-white">{formatPrice(netVals.target)}</div>
+                                                    <div className="text-xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tighter group-hover:text-white">{formatPrice(displayValues.target)}</div>
                                                 </div>
-                                                <div className="bg-rose-950/30 border border-rose-900/50 rounded-xl p-3 sm:p-4 text-center group cursor-pointer hover:bg-rose-900/50 transition-colors" onClick={() => handleCopy(netVals.sl, "손절 (STOP)")}>
+                                                <div className="bg-rose-950/30 border border-rose-900/50 rounded-xl p-3 sm:p-4 text-center group cursor-pointer hover:bg-rose-900/50 transition-colors" onClick={() => handleCopy(displayValues.sl, "손절 (STOP)")}>
                                                     <div className="text-[10px] text-rose-500 font-black mb-1 tracking-widest uppercase flex items-center justify-center gap-1 group-hover:text-white">손절 <Copy className="w-3 h-3 opacity-50" /></div>
-                                                    <div className="text-xl sm:text-3xl font-black text-rose-400 font-mono tracking-tighter group-hover:text-white">{formatPrice(netVals.sl)}</div>
+                                                    <div className="text-xl sm:text-3xl font-black text-rose-400 font-mono tracking-tighter group-hover:text-white">{formatPrice(displayValues.sl)}</div>
                                                 </div>
                                                 <div className="bg-amber-950/30 border border-amber-900/50 rounded-xl p-3 sm:p-4 text-center flex flex-col justify-center items-center">
                                                     <div className="text-[10px] text-amber-500 font-black mb-1 tracking-widest uppercase">손익비 (RR)</div>
@@ -1639,11 +1838,16 @@ export const RedPotionArena = () => {
                                                     ▼ 복잡한 분석 상세 보기 (Lazy Load 해제)
                                                 </Button>
                                                 <Button
-                                                    onClick={handlePreTradeExecute}
-                                                    disabled={activePositions >= 3 || isSysBlocked || isSniperLocked || cvdStatus !== 'PASS' || twapLockCountdown > 0 || (masterSignal.kellyRiskPct === 0) || isSignalExpired}
-                                                    className={`w-full h-16 font-black text-lg sm:text-xl tracking-widest transition-all ${activePositions >= 3 || isSysBlocked || isSniperLocked || cvdStatus !== 'PASS' || twapLockCountdown > 0 || (masterSignal.kellyRiskPct === 0) || isSignalExpired ? 'bg-zinc-800/80 text-zinc-500 cursor-not-allowed border-none' : isShadowTracking ? 'bg-purple-900/40 text-purple-400 border border-purple-500 animate-pulse' : masterSignal.perfectStormActive ? 'bg-gradient-to-r from-purple-600 to-rose-600 hover:from-purple-500 hover:to-rose-500 text-white shadow-[0_0_30px_rgba(168,85,247,0.8)] animate-[pulse_1s_ease-in-out_infinite] scale-105 border border-purple-400' : 'bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.5)] animate-[pulse_1.5s_ease-in-out_infinite]'}`}
+                                                    onClick={() => {
+                                                        if (!isShadowTracking) {
+                                                            setIsShadowTracking(true);
+                                                            alert('수동 진입을 확인했습니다. 시장 모멘텀 역전 감시(Shadow mode)를 시작합니다.');
+                                                        }
+                                                    }}
+                                                    disabled={isSignalExpired || isShadowTracking}
+                                                    className={`w-full h-16 font-black text-lg sm:text-xl tracking-widest transition-all ${isSignalExpired ? 'bg-zinc-800/80 text-zinc-500 cursor-not-allowed border-none' : isShadowTracking ? 'bg-purple-900/40 text-purple-400 border border-purple-500 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-[0_0_20px_rgba(37,99,235,0.5)]'}`}
                                                 >
-                                                    {isSignalExpired ? '만료됨 (DISCARD)' : isSysBlocked || isSniperLocked || (masterSignal.kellyRiskPct === 0) ? '관망 처리' : twapLockCountdown > 0 ? '변동성 대기 중' : cvdStatus !== 'PASS' ? '오더플로우 대기' : isShadowTracking ? '👁️ 가상 감시 중...(Shadow mode)' : masterSignal.perfectStormActive ? '🚀 퍼펙트 스톰 진입 (Shadow 시작)' : '🖐️ 수동 진입 완료 (Shadow 시작)'}
+                                                    {isSignalExpired ? '만료됨 (DISCARD)' : isShadowTracking ? '가상 감시 중...(Shadow mode)' : '🖐️ 텔레그램 확인 후 수동 진입 완료 (Shadow 시작)'}
                                                 </Button>
                                             </div>
                                         </div>
@@ -1778,7 +1982,7 @@ export const RedPotionArena = () => {
                                                                 : 'bg-orange-950/50 border-orange-500/50 text-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.2)]'
                                                             }`}
                                                         >
-                                                            <span>👁️ MBO X-Ray: 단일 거대 매물대 발견. </span>
+                                                            <span>MBO X-Ray: 단일 거대 매물대 발견. </span>
                                                             {masterSignal.mboSpoofingStatus === 'CLOUD' ? (
                                                                 <span className="text-sky-300">☁️ 허수벽(Spoofing Cloud)으로 판독 완료</span>
                                                             ) : (
@@ -1884,7 +2088,7 @@ export const RedPotionArena = () => {
                                                             </div>
                                                         ) : entryMachineState === 'LOCK_ON' ? (
                                                             <div className="bg-emerald-950/50 border border-emerald-500/50 text-[10px] text-emerald-400 p-3 rounded-lg shadow-[0_0_20px_rgba(16,185,129,0.3)] text-center font-mono">
-                                                                👁️ <strong>락온(Lock-On):</strong> 존 진입 완료. MBO/CVD 스캐너로 기관 물량 흡수(Absorption) 대기 중 (가짜 돌파 확인).
+                                                                <strong>락온(Lock-On):</strong> 존 진입 완료. MBO/CVD 스캐너로 기관 물량 흡수(Absorption) 대기 중 (가짜 돌파 확인).
                                                             </div>
                                                         ) : null}
                                                     </div>
@@ -1972,7 +2176,7 @@ export const RedPotionArena = () => {
                                                         )}
                                                     </div>
                                                     <span className="text-2xl sm:text-xl font-mono text-emerald-400 font-black leading-none mb-1 group-hover/target:text-white transition-colors">
-                                                        {formatPrice(masterSignal.liquidityFrontRunnerOffset ? (masterSignal.direction === 'LONG' ? Math.round(netVals.target * (1 - masterSignal.liquidityFrontRunnerOffset / 100)) : Math.round(netVals.target * (1 + masterSignal.liquidityFrontRunnerOffset / 100))) : netVals.target)}
+                                                        {formatPrice(displayValues.target)}
                                                     </span>
                                                     <div className="text-[9px] sm:text-[10px] text-zinc-500 font-bold tracking-tight opacity-70">
                                                         (수수료 제외 +{netVals.netTargetPct}% 실수익)

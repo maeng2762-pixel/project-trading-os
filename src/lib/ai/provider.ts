@@ -148,6 +148,24 @@ export interface MasterSignal {
     schellingPointSweepTarget?: number;            // Module 2: Schelling Point Liquidity Sweep
     agenticEnsembleScore?: { structure: number, orderflow: number, volatility: number, macro: number, total: number }; // Module 3: Agentic AI Ensemble (0-100)
     lossAversionTrailingStop?: boolean;            // Module 4: Loss Aversion & 3-Bar Trailing Stop
+
+    // --- HP1 v53.0 The Risk Oracle & Micro-Adaptation ---
+    monteCarloRiskOfRuin?: number;                 // Module 1: Monte Carlo Resampling Risk of Ruin (%)
+    rsiDivergenceSweepConfirmed?: boolean;         // Module 2: RSI Divergence Confirmation on Liquidation Sweep
+    adaptiveRollingWindowDays?: number;            // Module 3: 10-Day Rolling Window Engine Focus
+
+    // --- HP1 v56.0 The End-Game (마스터피스 패치) ---
+    cvdTrapConfirmed?: boolean;                    // Module 2: CVD Trap Signal Confirmation
+    googleTrendsScore?: number;                    // Module 3: Google Trends FOMO Weighted Score (0-1)
+    icebergDetectionZone?: number;                 // Module 4: Iceberg Order Detection Strong S/R Zone
+
+    // --- HP1 v99.9 The Abyss Architect (기밀 해제 패치) ---
+    darkPoolAnomalyDetected?: boolean;             // Module 2: Dark Pool Spread/Vol Anomaly
+    kellyOptimalRatioBusseti?: number;             // Module 1: Risk-Constrained Kelly
+    boctaoeExemptionTriggered?: boolean;           // Module 4: Noise Cancel Filter
+
+    // --- HP1 v100.0 The Predator (Anti-AI 제로데이 패치) ---
+    predatorStopHuntDetected?: boolean;            // Module 1: Anti-AI Liquidity Grab detection
 }
 
 
@@ -594,7 +612,25 @@ export class MockBroadcastProvider implements AIProvider {
                 macro: Math.floor(Math.random() * 20) + 80,
                 total: 91 + Math.floor(Math.random() * 8) // ensuring > 90 output
             } : undefined,
-            lossAversionTrailingStop: Math.random() > 0.5
+            lossAversionTrailingStop: Math.random() > 0.5,
+
+            // v53.0 The Risk Oracle & Micro-Adaptation
+            monteCarloRiskOfRuin: Math.random() > 0.5 ? Number((Math.random() * 5).toFixed(2)) : undefined, // 0~5%
+            rsiDivergenceSweepConfirmed: Math.random() > 0.7,
+            adaptiveRollingWindowDays: Math.random() > 0.5 ? 10 : undefined,
+
+            // v56.0 The End-Game (마스터피스 패치)
+            cvdTrapConfirmed: Math.random() > 0.8,
+            googleTrendsScore: Math.random() > 0.3 ? Number((Math.random() * 0.5 + 0.3).toFixed(2)) : undefined,
+            icebergDetectionZone: Math.random() > 0.8 ? basePrice - 50 : undefined,
+
+            // v99.9 The Abyss Architect (기밀 해제 패치)
+            darkPoolAnomalyDetected: Math.random() > 0.9,
+            kellyOptimalRatioBusseti: 0.05 + Math.random() * 0.1,
+            boctaoeExemptionTriggered: Math.random() > 0.95,
+
+            // v100.0 The Predator (Anti-AI 제로데이 패치)
+            predatorStopHuntDetected: Math.random() > 0.92,
         };
     }
 }
