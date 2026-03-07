@@ -258,6 +258,16 @@ export async function POST(req: Request) {
              return NextResponse.json({ success: true, status: `Filtered (Does not meet dynamic min grade: ${dynamicMinGrade.join('/')})` });
         }
 
+        // --- HP1 v116-D 데이 모드 심화: The Finished Auction (하드블록) ---
+        if (analysis.isUnfinishedBizStopRisk) {
+             console.log("🛑 Unfinished Business Stop-Hunt Block: 진입 타점 뒤 호가창 스탑헌터 존재. 강제 차단.");
+             return NextResponse.json({ success: true, status: `Blocked by Unfinished Business Stop Risk` });
+        }
+        if (analysis.isValueMigrationBlocked) {
+             console.log("🛑 Value Migration Block: 볼륨 수용 영역 이동 추세에 역행하는 스캘핑. 강제 차단.");
+             return NextResponse.json({ success: true, status: `Blocked by Value Migration Trend Reversal` });
+        }
+
         // --- HP1 v116: Sub-Minute TCT Slippage Evasion (최초 4초 맹독성 유동성 회피) ---
         const startSecond = new Date().getSeconds();
         if (startSecond <= 4) {
