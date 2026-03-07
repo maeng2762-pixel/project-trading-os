@@ -267,6 +267,11 @@ export async function POST(req: Request) {
              console.log("🛑 Value Migration Block: 볼륨 수용 영역 이동 추세에 역행하는 스캘핑. 강제 차단.");
              return NextResponse.json({ success: true, status: `Blocked by Value Migration Trend Reversal` });
         }
+        // --- HP1 v116-D 파이널: The Intraday Apex (하드블록) ---
+        if (analysis.isLasso15mBlocked) {
+             console.log(`🛑 LASSO 15M Mismatch Block: 모델 예측(${analysis.lasso15mDirection})과 진입 방향(${analysis.direction}) 불일치. 강제 차단.`);
+             return NextResponse.json({ success: true, status: `Blocked by LASSO 15M Mismatch` });
+        }
 
         // --- HP1 v116: Sub-Minute TCT Slippage Evasion (최초 4초 맹독성 유동성 회피) ---
         const startSecond = new Date().getSeconds();

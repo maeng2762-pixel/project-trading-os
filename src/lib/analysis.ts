@@ -152,6 +152,10 @@ export interface AnalysisResult {
     // --- HP1 v116-D 데이 모드 심화: The Finished Auction ---
     isUnfinishedBizStopRisk?: boolean;
     isValueMigrationBlocked?: boolean;
+
+    // --- HP1 v116-D 데이 모드 파이널: The Intraday Apex ---
+    isLasso15mBlocked?: boolean;
+    lasso15mDirection?: 'LONG' | 'SHORT' | 'NEUTRAL';
 }
 
 export interface ExtData {
@@ -249,6 +253,13 @@ export interface ExtData {
     microAbsorptionConfirmed1m?: boolean;
     multipleHvnLocked?: boolean;
     valueMigrationTrend?: 'UPWARD' | 'DOWNWARD' | 'FLAT';
+
+    // --- HP1 v116-D 데이 모드 파이널: The Intraday Apex ---
+    isStackedImbalanceFirstTouch?: boolean; // 스택형 임밸런스 300% 이상 첫 풀백 여부
+    isEqhEqlChochReversal?: boolean; // EQH/EQL 스윕 직후 단기 CHoCH 반전 포착
+    isMegaFvgRetracement?: boolean; // 다중 연속 FVG 병합 존으로의 회귀 타점
+    nextThickVolumeNode?: number; // 목표가 앞의 가장 두꺼운 볼륨 매물대 레벨
+    lasso15mDirection?: 'LONG' | 'SHORT' | 'NEUTRAL'; // 15분 LASSO 회귀 모델 예측 방향
 }
 
 // --- Basic Indicator Functions ---
@@ -1029,8 +1040,22 @@ export const AnalysisEngine = {
         let isUnfinishedBizStopRisk = false;
         const vwapLevel = extData?.vwapLevel || currentVWAP;
 
+        // --- HP1 v116-D 파이널: 15-Min LASSO Directional Estimator ---
+        let isLasso15mBlocked = false;
+
         // 거시적 가치 영역 필터에 막히지 않은 경우에만 스캘핑 허용
         if (!isValueMigrationBlocked) {
+            
+            // v116-D 파이널: 15-Min LASSO Directional Estimator (LASSO 방향성 필터링)
+            if (extData?.lasso15mDirection && extData.lasso15mDirection !== 'NEUTRAL') {
+                if (extData.lasso15mDirection !== rawDirection) {
+                    isLasso15mBlocked = true;
+                    reasons.push(`🤖 [LASSO Estimator] 15분방 회귀 모델과 방향 불일치! 모델 예측: ${extData.lasso15mDirection}. 안전을 위해 켈리 비중을 0%로 강제 락다운합니다.`);
+                } else {
+                    reasons.push(`🤖 [LASSO Estimator] 15분 L1 정규화 모델 예측 결과와 방향성 정렬(Aligned) 완료. 켈리 비중 정상 할당!`);
+                }
+            }
+
             if (extData?.liquidationSweepDetected && extData?.rsiDivergence15m) {
                 // v116-D 심화: 히트맵 진성 클러스터(12시간 이상 유지) 검증
                 if (extData.liquidationClusterPersistenceHours && extData.liquidationClusterPersistenceHours >= 12) {
@@ -1065,6 +1090,18 @@ export const AnalysisEngine = {
                 } else if (extData?.vwapAbsorptionDetected) {
                     isIntradayScalp = true;
                     intradayReason = "🌊 [VWAP 매도 흡수] VWAP 터치 시점에 시장가 체결이 지정가 물량에 역으로 막히는 Absorption(흡수) 발생. 역추세로 스위칭합니다.";
+                } else if (extData?.isStackedImbalanceFirstTouch) {
+                    // v116-D 파이널: Stacked Imbalances Pullback
+                    isIntradayScalp = true;
+                    intradayReason = "🧱 [Stacked Imbalance 풀백 사냥] 오더플로우 Bid/Ask 300% 격차의 강성 3중첩(Stacked) 구역 지지 확인. 첫 번째 회귀(First Touch) 반등을 신뢰하고 진입!";
+                } else if (extData?.isEqhEqlChochReversal) {
+                    // v116-D 파이널: Liquidity Sweep & CHoCH Reversal
+                    isIntradayScalp = true;
+                    intradayReason = "🩸 [Sweep & CHoCH Rev] 개미들의 Equal High/Low 유동성 풀 스윕 직후 단기 구조 반전(CHoCH) 발생. 추격 매수 멈추고 역추세 폭격(Fade) 개시!";
+                } else if (extData?.isMegaFvgRetracement) {
+                    // v116-D 파이널: Consecutive FVG Merge Sniper
+                    isIntradayScalp = true;
+                    intradayReason = "🕳️ [Consecutive FVG Sniper] 조각난 FVG가 하나로 병합된 거대 진공 풀(Mega-FVG) 진입 확인. 즉각 자석 효과에 몸을 싣고 스나이핑 발동!";
                 } else if (extData?.multipleHvnLocked && extData?.microAbsorptionConfirmed1m) {
                     // v116-D 심화: Micro-Absorption & Multiple HVN
                     isIntradayScalp = true;
@@ -1108,8 +1145,13 @@ export const AnalysisEngine = {
                  rawScore = rawDirection === 'LONG' ? 100 : 0; // 거시적 필터 무시를 위해 강력 승인 트리거
                  reasons.push(intradayReason);
                  
+                 // v116-D 파이널: Volume-Based Take Profit (볼륨 매물대 직전 익절)
+                 if (extData?.nextThickVolumeNode) {
+                     intradayTp1Override = rawDirection === 'LONG' ? extData.nextThickVolumeNode - 1 : extData.nextThickVolumeNode + 1; // 1~2틱 앞 시장가 회피 프론트러닝
+                     reasons.push(`🎯 [Volume-Based TP] 앞길을 막아선 두꺼운 매물대(HVN) 포착. 돌파 기도를 멈추고 매물대 터치 직전($${intradayTp1Override?.toFixed(2)}) 전량 익절을 예약합니다.`);
+                 }
                  // v116-D 심화: 진공 구간 관통 1차 TP 공격적 설정
-                 if (extData?.liquidationGapTarget && !intradayTp1Override) {
+                 else if (extData?.liquidationGapTarget && !intradayTp1Override) {
                      intradayTp1Override = extData.liquidationGapTarget;
                      reasons.push(`🌀 [Liquidity Gap Targeting] 다음 클러스터까지의 유동성 진공 구간 포착. 1차 익절가(TP1)를 $${intradayTp1Override.toFixed(2)} 로 공격적 설정.`);
                  }
@@ -1686,7 +1728,10 @@ export const AnalysisEngine = {
 
             // HP1 v116-D 데이 모드 심화: The Finished Auction
             isUnfinishedBizStopRisk,
-            isValueMigrationBlocked
+            isValueMigrationBlocked,
+            // HP1 v116-D 데이 모드 파이널: The Intraday Apex
+            isLasso15mBlocked,
+            lasso15mDirection: extData?.lasso15mDirection
         } as any; // Cast as any because we are changing the return shape potentially, but let's keep it compatible if possible or update interface
     },
 
@@ -1700,8 +1745,8 @@ export const AnalysisEngine = {
         mode: 'BLUE' | 'RED' = 'BLUE'
     ): { margin: number; leverage: number; limitPrice: number; sl: number; tp1: number; tp2: number; tp3: number; tp: number; tp1Ratio: number; tp2Ratio: number; tp3Ratio: number; reason: string; isPyramidEligible?: boolean; isFrontRunOffsetApplied?: boolean } => {
 
-        if (signal.actionGrade === 'F') {
-            return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: "Signal Grade F. Do not trade." };
+        if (signal.actionGrade === 'F' || signal.isLasso15mBlocked) {
+            return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: signal.isLasso15mBlocked ? "🚨 [LASSO 15M Mismatch] 모델 예측과 진입 방향 이탈로 켈리 비중 0% (진입 차단)." : "Signal Grade F. Do not trade." };
         }
 
         // SL/TP logic remains pure technical (ATR based)
