@@ -208,57 +208,38 @@ export async function POST(req: Request) {
             const sandboxBalance = 100;
             const personalRisk = AnalysisEngine.calculatePersonalRisk(analysis, sandboxBalance, analysis.currentPrice || 0, 'BLUE');
             
-            let message = `🚨 <b>[HP1 라이브 가동] ${analysis.actionGrade}급 타점이 포착되었습니다</b>\n` +
-                          `⚠️ [안전 보호 장치] 인프라 검증을 위해 $100 샌드박스 시드 기준 진입가를 산출합니다.\n\n` +
-                          `${analysis.isIcebergAbsorptionReversed ? `🧊 <b>[아이스버그 스텔스 감지]</b> 기관의 체결 쪼개기(Absorption)가 포착되었습니다. 역추세로 돌격합니다.\n\n` : ''}` +
-                          `${analysis.isAccumulationDefenseTested ? `📦 <b>[매집 샌드박스 방어선]</b> S급 HVN 방어 구간(Accumulation) 지지/저항에 진입했습니다.\n\n` : ''}` +
-                          `${analysis.isSchellingPointConvergence ? `⚠️ <b>[Schelling Point 도달]</b> 거대 자본의 무언의 담합이 예상되는 지점입니다.\n\n` : ''}` +
-                          `${analysis.isMtfDivergenceReversal ? `🔥 <b>[다중 시간대 다이버전스]</b> 숨겨진 모멘텀 역전 포착. 최우선 역추세 진입!\n\n` : ''}` +
-                          `🗜️ <b>[컴프레스 존 교차 분석]</b>\n` +
-                          `${analysis.isCompressZone ? `✅ ${analysis.compressZoneDetails}` : '❌ 압축 구간 미달. 단일 지표 기반 진입.'}\n\n`;
-            
-            // --- HP1 v109: Lean A/B Split Testing Result ---
-            message += `🧪 <b>[A/B 테스트 배정] 전략 ${analysis.abTestVariant || 'B'} 가동</b>\n`;
-            if (analysis.abTestVariant === 'A') {
-                message += `👉 보수적 익절 전략 (빠른 반익절 후 방어적 트레일링)\n\n`;
-            } else {
-                message += `👉 추세 추종 전략 (1:2 RRR에서 익절 후 1:5 타겟팅)\n\n`;
-            }
+            // Calculate latency for the message
+            const currentLatency = Math.round(performance.now() - startTime);
 
-            // --- HP1 v111 & v112: The Adaptive Regime Matrix & The Vanguard's Edge ---
-            message += `🔬 <b>[시장 국면 판별기 (Market Regime)]</b>\n` +
-                       `ADX 모멘텀: ${analysis.adxValue?.toFixed(2) || 'N/A'} 👉 ${analysis.isTrendingRegime ? '🔥 추세장 런너 모드 (Trend)' : '🧊 횡보 스캘핑 모드 (Ranging)'}\n` +
-                       `${analysis.isCvdExhausted ? '⚠️ <b>[CVD 조기 탈출 대기]</b> 고래 매수세 고갈 감지. TP1 도달 시 잔여 물량 즉각 청산 준비.\n' : ''}` +
-                       `${analysis.googleTrendsSentiment === 'BULLISH' ? '📈 <b>[Google Trends]</b> 대중적 관심도 폭증(Bullish). 숏 진입 가중치 완전 차단/축소.\n' : analysis.googleTrendsSentiment === 'BEARISH' ? '📉 <b>[Google Trends]</b> 대중적 관심도 냉각(Bearish). 매수(Long) 억제.\n' : ''}` +
-                       `${analysis.volumeProfileShape === 'P' ? '🔠 <b>[Volume Profile]</b> P-Shape(상단 밀집). 숏 스퀴즈 강제 롱 가중치 부여.\n' : analysis.volumeProfileShape === 'b' ? '🔠 <b>[Volume Profile]</b> b-Shape(하단 밀집). 패닉셀 유발 숏 가중치 부여.\n' : ''}` +
-                       `${analysis.hasIntegerAlgoFootprint ? '🤖 <b>[Algo Footprint]</b> 엘리트 기관의 정수형(.000) 거대 방어 물량 락온 완료!\n\n' : '\n'}`;
+            let message = `🚨 <b>[HP1 킬존 도달] 피 냄새를 맡았습니다. 돌격하십시오!</b> 🚨\n` +
+                          `⚠️ <b>[$100 샌드박스 라이브]</b> 멍청한 개미들의 돈을 수거할 시간입니다.\n\n`;
 
-            message += `⚖️ <b>[손익비 및 리스크 프로필]</b>\n` +
-                       `방향: ${directionText}\n`;
+            if (analysis.isIcebergAbsorptionReversed) message += `🧊 <b>[아이스버그 스텔스 감지]</b> 기관의 체결 쪼개기(Absorption) 포착. 역추세 돌격!\n`;
+            if (analysis.isAccumulationDefenseTested) message += `📦 <b>[매집 샌드박스 방어선]</b> S급 HVN 방어 구간(Accumulation) 지지/저항 진입.\n`;
             
-            // --- HP1 v102 & v104 Extension: Magnet Max TP, Institutional Liq & Peter Brandt Msg ---
-            if (analysis.maxTP && analysis.maxTP > 0) {
-                 if (analysis.isInstitutionalLiqTargeted) {
-                     message += `최종 목표가(Max TP): ${analysis.maxTP.toFixed(2)} [💥 25% Rule 기관 청산맵 자석]\n`;
-                 } else {
-                     message += `최종 목표가(Max TP): ${analysis.maxTP.toFixed(2)} [거대 자석 타겟]\n`;
-                 }
-            }
+            message += `\n🔬 <b>[현장 상황 브리핑 (Market Regime)]</b>\n` +
+                       `ADX 모멘텀: ${analysis.adxValue?.toFixed(2) || 'N/A'} 👉 ${analysis.isTrendingRegime ? '🔥 폭주하는 추세장. 끝까지 발라먹습니다.' : '🧊 지루한 횡보장. 스캘핑으로 푼돈까지 털어냅니다.'}\n` +
+                       `🧠 <b>[구글 투심]</b>: ${analysis.googleTrendsSentiment === 'BULLISH' ? '개미들의 포모(FOMO) 과열 중. 반대로 찌릅니다.' : analysis.googleTrendsSentiment === 'BEARISH' ? '공포에 질린 개미들. 하락 압력에 몸을 싣습니다.' : '무색무취의 대중. 차트 에너지만 믿고 갑니다.'}\n` +
+                       `🐋 <b>[기관 흔적]</b>: ${analysis.hasIntegerAlgoFootprint ? "호가창에 '.000' 단위 세력의 콘크리트 방어막 확인 완료." : "세력의 노골적인 흔적 부재. 기술적 타점 위주 대응."}\n\n`;
+
+            message += `⚖️ <b>[전술 타점 및 리스크 프로필]</b>\n` +
+                       `방향: ${directionText} - ${analysis.direction === 'LONG' ? '"하늘로 솟구치는 불기둥에 올라탑니다"' : '"떨어지는 칼날에 개미들을 제물로 바칩니다"'}\n`;
+
             if (!analysis.isMarketNeutralPairsTrade) {
-                message += `🎯 [TP 1 / ${(personalRisk.tp1Ratio * 100).toFixed(0)}% 익절] 타겟가: ${personalRisk.tp1.toFixed(2)}\n`;
+                message += `🎯 [TP 1 / ${(personalRisk.tp1Ratio * 100).toFixed(0)}% 익절] 1:2 비율로 기본 수수료 챙기기: ${personalRisk.tp1.toFixed(2)}\n`;
                 if (personalRisk.tp2Ratio > 0) {
-                    message += `🎯 [TP 2 / ${(personalRisk.tp2Ratio * 100).toFixed(0)}% 익절] 타겟가: ${personalRisk.tp2.toFixed(2)}\n`;
+                    message += `🎯 [TP 2 / ${(personalRisk.tp2Ratio * 100).toFixed(0)}% 익절] 1:3 비율로 뼈대 발라먹기: ${personalRisk.tp2.toFixed(2)}\n`;
                 }
                 if (personalRisk.tp3Ratio > 0) {
-                    message += `🌊 [TP 3 / ${(personalRisk.tp3Ratio * 100).toFixed(0)}% 런너] 무한 트레일링 스탑 진입\n`;
-                } else {
-                    message += `🌊 [TP 3 런너 모드 비활성] 노이즈장 대응 조기 탈출 셋업\n`;
+                    message += `🌊 [TP 3 / ${(personalRisk.tp3Ratio * 100).toFixed(0)}% 런너] 피터 브랜트 모드. 끝까지 수익 쥐어짜기.\n`;
                 }
-                message += `손절가(SL): ${personalRisk.sl.toFixed(2)} (Dark Side SL 적용됨)\n`;
+                message += `🛑 <b>손절가(SL)</b>: ${personalRisk.sl.toFixed(2)} (청산맵 진공 구역. 여기까지 오면 깔끔하게 인정하고 후퇴합니다.)\n\n`;
             }
+
             message += `진입 비중: ${analysis.recommendedSize.toFixed(0)}% (Kelly)\n` +
                        `권장 레버리지: ${personalRisk.leverage}x\n` +
                        `💰 권장 증거금(Margin): $${personalRisk.margin.toFixed(2)}\n\n` +
+                       `⏱️ <b>[시스템 핑]</b>: ${currentLatency}ms. Vercel 타격 속도 이상 무.\n\n` +
                        `🧠 <b>[기존 핵심 분석 및 알고리즘]</b>\n` +
                        `[TradingView Webhook 24/7 Sentry]\n` +
                        `SQN Rating: ${analysis.sqnScore?.toFixed(2) || 'N/A'}\n` +
