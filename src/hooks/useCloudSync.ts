@@ -160,5 +160,5 @@ export function useCloudSync() {
         const timeoutId = setTimeout(saveToCloud, 2000); // Debounce 2s
         return () => clearTimeout(timeoutId);
 
-    }, [stateString, user, isHydrated.current, setSyncStatus]); // Depend on serialized string
+    }, [stateString, user, isHydrated, setSyncStatus]); // Depend on serialized string
 }

@@ -137,6 +137,11 @@ export interface AnalysisResult {
     isFrontRunOffsetApplied?: boolean;
     smcCurrentRetracementPct?: number;
     macroOptionsRegime?: 'VOLATILE_GAMMA' | 'STABLE';
+
+    // --- HP1 v116 The LLM-Quant Sovereign ---
+    isKssArbitrageAligned?: boolean;
+    isMacroFloorLocked?: boolean;
+    tmmTarget?: number;
 }
 
 export interface ExtData {
@@ -207,6 +212,11 @@ export interface ExtData {
     // --- HP1 v115: The Apex Asymmetry ---
     smcCurrentRetracementPct?: number;
     macroOptionsRegime?: 'VOLATILE_GAMMA' | 'STABLE';
+
+    // --- HP1 v116: The LLM-Quant Sovereign ---
+    kssSetarThresholdExceeded?: boolean;
+    trueMarketMean?: number | null;
+    realizedPrice?: number | null;
 }
 
 // --- Basic Indicator Functions ---
@@ -931,17 +941,40 @@ export const AnalysisEngine = {
         let isFvgMagnetActive = false;
         let isStackedImbalanceConfirmed = false;
         let isCvdAbsorptionReversal = false;
-
-        // 1. 공적분(Cointegration) 스프레드 이탈 -> 양방향 헤지 Market-Neutral (Z-score > 2)
-        if (extData?.cointegrationZScore !== undefined && extData.cointegrationZScore > 2.0) {
+        
+        // --- HP1 v116: Non-Linear KSS & SETAR Arbitrage Engine ---
+        let isKssArbitrageAligned = false;
+        if (extData?.kssSetarThresholdExceeded) {
             isMarketNeutralPairsTrade = true;
+            isKssArbitrageAligned = true;
             rawScore = 100; // S-grade confirmation
-            reasons.push(`⚖️ Cointegration Pairs Arbitrage: 스프레드 한계 돌파(Z-Score > 2.0). Market-Neutral S급 타점 확정! (고평가숏/저평가롱 동시진입)`);
+            reasons.push(`⚖️ [KSS & SETAR Arbitrage] 비선형 임계치 이탈 포착! 단순 ADF를 넘어서는 압도적 평균회귀 압력. Market-Neutral S급 타점 확정! (고평가숏/저평가롱 동시진입)`);
 
             // 3. 기관 방어벽 확증 (오더플로우)
             if (extData.hasStackedImbalances && extData.hasMultipleHVN) {
                 isStackedImbalanceConfirmed = true;
                 reasons.push(`🧱 방어벽 확증: Stacked Imbalances & Multiple HVN 동시 포착. 이 가격대는 기관의 난공불락 요새입니다. 승률 극대화 확인.`);
+            }
+        } else if (extData?.cointegrationZScore !== undefined && extData.cointegrationZScore > 2.0) {
+            // Fallback for previous ADF cointegration if KSS is not provided
+            isMarketNeutralPairsTrade = true;
+            rawScore = 100; // S-grade confirmation
+            reasons.push(`⚖️ Cointegration Pairs Arbitrage: 스프레드 한계 돌파(Z-Score > 2.0). Market-Neutral S급 타점 확정! (고평가숏/저평가롱 동시진입)`);
+        }
+
+        // --- HP1 v116: Glassnode TMM Macro-Floor Lock ---
+        let isMacroFloorLocked = false;
+        const tmmTarget = extData?.trueMarketMean || extData?.realizedPrice || undefined;
+        if (tmmTarget) {
+            const floorMargin = tmmTarget * 1.05; // 5% buffer above TMM/Realized Price
+            if (currentPrice <= floorMargin && rawDirection === 'SHORT') {
+                isMacroFloorLocked = true;
+                rawScore = 50; 
+                reasons.push(`🐋 [TMM Macro-Floor Lock] True Market Mean($${tmmTarget.toFixed(2)}) 방어선 진입! 모든 하위 프레임 숏(SHORT)은 기관의 롱 매집용 트랩입니다. 시그널 강제 차단!`);
+            } else if (currentPrice <= floorMargin && rawDirection === 'LONG') {
+                isMacroFloorLocked = true;
+                rawScore = 100; // Max out long setup
+                reasons.push(`🐋 [TMM Macro-Floor Lock] True Market Mean($${tmmTarget.toFixed(2)}) 방어선 진입! 딥 다이브 매집 구역(Macro Support). 절대적 롱 매수 우위로 가중치 최대 격상!`);
             }
         }
 
@@ -1500,7 +1533,12 @@ export const AnalysisEngine = {
             // HP1 v115 The Apex Asymmetry
             isFrontRunOffsetApplied: false, // Calculated later in calculatePersonalRisk
             smcCurrentRetracementPct: extData?.smcCurrentRetracementPct,
-            macroOptionsRegime: extData?.macroOptionsRegime
+            macroOptionsRegime: extData?.macroOptionsRegime,
+
+            // HP1 v116 The LLM-Quant Sovereign
+            isKssArbitrageAligned,
+            isMacroFloorLocked,
+            tmmTarget
         } as any; // Cast as any because we are changing the return shape potentially, but let's keep it compatible if possible or update interface
     },
 

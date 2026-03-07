@@ -107,7 +107,7 @@ export class BacktestEngine {
 
             // 1.5 Logging for Filter Proof
             if (rawSignal.actionGrade !== 'F' && signal.actionGrade === 'F') {
-                let reason = signal.isHtfStructureBlocked ? "HTF Structure Blocked" : "Sentiment/Volume Filtered";
+                const reason = signal.isHtfStructureBlocked ? "HTF Structure Blocked" : "Sentiment/Volume Filtered";
                 // console.log(`[Filter] ${timestamp} 🛡️ Blocked S-Rank Trade: ${reason}`);
                 (this as any).blockedCount = ((this as any).blockedCount || 0) + 1;
             }

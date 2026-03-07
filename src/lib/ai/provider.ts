@@ -276,8 +276,8 @@ export class MockBroadcastProvider implements AIProvider {
 
         // --- HP1 v43.0: The Ecosystem & Omni-Routing ---
         let oiDivergenceState: 'TOP_AVOIDANCE' | 'BOTTOM_REVERSAL' | undefined = undefined;
-        let paretoRoutingOptimal = true;
-        let tcrVerifiedAsset = true;
+        const paretoRoutingOptimal = true;
+        const tcrVerifiedAsset = true;
         let mcpMacroWarning: string | null = null;
 
         const oiRandom = Math.random();

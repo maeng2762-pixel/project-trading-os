@@ -53,7 +53,7 @@ export const ShieldCalculator = () => {
         const riskPerUnit = Math.abs(entryVal - slVal);
         const stopLossPct = (riskPerUnit / entryVal);
         const targetPerUnit = isNaN(targetVal) ? 0 : Math.abs(targetVal - entryVal);
-        let rr = targetPerUnit > 0 ? targetPerUnit / riskPerUnit : 0;
+        const rr = targetPerUnit > 0 ? targetPerUnit / riskPerUnit : 0;
 
         // Spot Accumulation Math
         let cryptoPct = 0;

@@ -31,9 +31,9 @@ export function TrustBadge() {
 
     // 3. Max Drawdown (MDD) - Simulated from History
     // We traverse history backwards to find the Peak Balance vs Current Balance at each step
-    let peakBalance = balance;
-    let currentSimBalance = balance;
-    let maxDrawdown = 0;
+    const peakBalance = balance;
+    const currentSimBalance = balance;
+    const maxDrawdown = 0;
 
     // To do this strictly correctly, we need the balance before each trade. 
     // balance - trade.pnl = prevBalance.

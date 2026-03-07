@@ -42,7 +42,7 @@ export async function GET(req: Request) {
         // we might have to fetch per symbol, or use fetchClosedOrders if Binance allows it without symbol.
         // For MVP, we will fetch BTC/USDT history as it's the main pair.
         const symbol = 'BTC/USDT';
-        let limit = 50; // Fetch last 50 trades
+        const limit = 50; // Fetch last 50 trades
 
         const trades = await exchange.fetchMyTrades(symbol, undefined, limit);
 

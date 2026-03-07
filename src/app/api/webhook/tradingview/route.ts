@@ -258,6 +258,50 @@ export async function POST(req: Request) {
              return NextResponse.json({ success: true, status: `Filtered (Does not meet dynamic min grade: ${dynamicMinGrade.join('/')})` });
         }
 
+        // --- HP1 v116: Sub-Minute TCT Slippage Evasion (최초 4초 맹독성 유동성 회피) ---
+        const startSecond = new Date().getSeconds();
+        if (startSecond <= 4) {
+             const delayMs = (5 - startSecond) * 1000;
+             console.log(`⏱️ TCT Slippage Evasion: 맹독성 유동성 구간(${startSecond}초) 감지. HFT 휩소 회피를 위해 ${delayMs}ms 지연 대기합니다.`);
+             await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+
+        // --- HP1 v116: ChatGPT-o1 Agentic Trade Validator (LLM 에이전틱 타점 검수기) ---
+        let llmFinalApproval = true;
+        let llmJson: any = null;
+        if (analysis.actionGrade === 'S' && process.env.OPENAI_API_KEY) {
+            console.log("🤖 LLM-Quant Agentic Validator 가동. 2차 메타 검증을 시작합니다.");
+            try {
+                 const prompt = `You are a strict Quant AI. Evaluate this trade setup:\nDirection: ${analysis.direction}\nGrade: ${analysis.actionGrade}\nPrice: ${analysis.currentPrice || 0}\nRSI: ${extData.rsi || -1}\nADX: ${analysis.adxValue || -1}\nMacro Regime: ${extData.macroOptionsRegime || 'STABLE'}\n\nRespond EXACTLY in JSON format: {"decision": "EXECUTE" | "REJECT", "confidence": <0-100 number>, "reason": "<short concise text>"}`;
+                 
+                 const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                     method: "POST",
+                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENAI_API_KEY}` },
+                     body: JSON.stringify({
+                         model: "gpt-4o",
+                         messages: [{ role: "system", content: "You are a Quant AI." }, { role: "user", content: prompt }],
+                         response_format: { type: "json_object" }
+                     })
+                 });
+                 const data = await res.json();
+                 if (data.choices && data.choices[0]) {
+                     llmJson = JSON.parse(data.choices[0].message.content);
+                     if (llmJson.decision !== "EXECUTE") {
+                          llmFinalApproval = false;
+                          console.log(`🚫 LLM-Quant Validator가 진입을 거부했습니다: ${llmJson.reason}`);
+                     } else {
+                          console.log(`✅ LLM-Quant 승인 (신뢰도 ${llmJson.confidence}%): ${llmJson.reason}`);
+                     }
+                 }
+            } catch(e) {
+                 console.error("LLM Validator API failed:", e);
+            }
+        }
+        
+        if (!llmFinalApproval) {
+            return NextResponse.json({ success: true, status: `Blocked by LLM-Quant Validator: ${llmJson?.reason}` });
+        }
+
         // Format for Telegram
         if (telegramBotToken && telegramChatId) {
             let directionEmoji = analysis.direction === 'LONG' ? '🟢' : '🔴';
@@ -275,8 +319,10 @@ export async function POST(req: Request) {
             
             // Calculate latency for the message
             const currentLatency = Math.round(performance.now() - startTime);
+            const llmLabel = llmJson ? `🤖 <b>[LLM-o1 최종 승인 완료 (신뢰도 ${llmJson.confidence}%)]</b>\n` : '';
 
             let message = `🚨 <b>[HP1 킬존 도달] 피 냄새를 맡았습니다. 돌격하십시오!</b> 🚨\n` +
+                          llmLabel +
                           `⚠️ <b>[$100 샌드박스 라이브]</b> 멍청한 개미들의 돈을 수거할 시간입니다.\n\n` +
                           `🎯 <b>타겟</b>: BTCUSDT (비트코인 무기한 선물)\n` +
                           `⚔️ <b>방향</b>: ${directionEmoji} ${directionName} - ${directionQuote}\n` +
