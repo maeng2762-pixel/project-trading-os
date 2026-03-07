@@ -58,6 +58,7 @@ export interface AnalysisResult {
     // --- HP1 v100.0: The Predator (Anti-AI 제로데이 패치) ---
     predatorStopHuntDetected?: boolean;            // Module 1: Anti-AI Liquidity Grab detection
     orderBookVelocityAnomaly?: boolean;            // Module 2: Spoofing/Flash Cancel detection
+    kellyFraction?: number;                        // Dynamic Kelly Fraction (v116-D)
 
     // --- HP1 Extension: The SQN & ATR Pinnacle ---
     trailingStopMsg?: string;
@@ -176,6 +177,17 @@ export interface AnalysisResult {
     isIcebergSustainConfirmed?: boolean;
     isSmcObCloseMitigated?: boolean;
     isOiReversalDivergenceDetected?: boolean;
+
+    // --- HP1 v116-D 파이널 착취: The Micro-Structure Exploiter ---
+    isTwapDelayed?: boolean;
+    deepLearningScore?: number;
+    dynamicTrailingStop?: number;
+    heikinAshiTrend?: string;
+
+    // --- HP1 v117: Safety & Global Governance ---
+    isGlobalCooldownActive?: boolean;
+    isPositionLimitReached?: boolean;
+    isPostOnlyMakerOrder?: boolean;
 }
 
 export interface ExtData {
@@ -293,6 +305,10 @@ export interface ExtData {
     breakoutSignalCandleHigh?: number; // 스퀴즈 돌파 신호 캔들 고점
     breakoutSignalCandleLow?: number; // 스퀴즈 돌파 신호 캔들 저점
 
+    // --- HP1 v117: Safety & Global Governance ---
+    isGlobalCooldownActive?: boolean;
+    isPositionLimitReached?: boolean;
+
     // --- HP1 v116-D 파이널 어셈블리: The Ultimate Intraday Machine ---
     waeExplosionValue?: number;
     waeDeadZoneLevel?: number;
@@ -300,6 +316,14 @@ export interface ExtData {
     icebergPriceLevel?: number;
     isObBodyPierced?: boolean; // For SMC Close-Mitigation
     oiDivergenceType?: 'BREAKOUT_FAIL' | 'REVERSAL_CONFIRM' | 'NONE';
+
+    // --- HP1 v116-D 파이널 착취: The Micro-Structure Exploiter ---
+    isTwapAnomalyMinute?: boolean; // Server time 00, 15, 30, 45
+    fnnProb?: number; // 0.0 ~ 1.0
+    lstmProb?: number; // 0.0 ~ 1.0
+    gruProb?: number; // 0.0 ~ 1.0
+    heikinAshiTrend?: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+    atr15m?: number;
 }
 
 // --- Basic Indicator Functions ---
@@ -542,6 +566,83 @@ const calculateATRArray = (highs: number[], lows: number[], closes: number[], pe
     return results;
 };
 
+const calculateSQN = (trades: number[]): { sqn: number, msg: string, killSwitch: boolean, lambdaModifier: number } => {
+    if (trades.length < 30) return { sqn: 2.0, msg: "Need more trades for SQN", killSwitch: false, lambdaModifier: 1.0 };
+    const mean = trades.reduce((a, b) => a + b, 0) / trades.length;
+    const variance = trades.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / trades.length;
+    const stdDev = Math.sqrt(variance);
+    const sqn = (mean / (stdDev || 1)) * Math.sqrt(trades.length);
+    let msg = `SQN: ${sqn.toFixed(2)}`;
+    let killSwitch = false;
+    let lambdaModifier = 1.0;
+    if (sqn > 3.0) {
+        msg = `⭐ [SQN 우수 국면] SQN ${sqn.toFixed(2)} > 3.0. 켈리 시스템 공격성(Lambda) 상향 적용.`;
+        lambdaModifier = 1.5;
+    } else if (sqn < 1.6) {
+        msg = `⚠️ [경고: SQN 붕괴] SQN ${sqn.toFixed(2)} < 1.6. 전략 불일치 위험으로 시그널 발송 일시 중단(Kill Switch).`;
+        killSwitch = true;
+        lambdaModifier = 0.0;
+    }
+    return { sqn, msg, killSwitch, lambdaModifier };
+};
+
+const runMonteCarloBootstrapping = (trades: number[], iterations: number = 10000) => {
+    const maxDrawdowns = [];
+    let ruins = 0;
+    const baseCapital = 10000;
+    const riskPerTrade = 0.02;
+    for (let i = 0; i < iterations; i++) {
+        let capital = baseCapital;
+        let peak = baseCapital;
+        let maxDd = 0;
+        for (let j = 0; j < 100; j++) {
+            const randomTrade = trades[Math.floor(Math.random() * trades.length)];
+            const tradePnl = capital * riskPerTrade * randomTrade;
+            capital += tradePnl;
+            if (capital > peak) peak = capital;
+            const dd = (peak - capital) / peak;
+            if (dd > maxDd) maxDd = dd;
+            if (capital <= 0) {
+                ruins++;
+                break;
+            }
+        }
+        maxDrawdowns.push(maxDd);
+    }
+    maxDrawdowns.sort((a, b) => a - b);
+    const var95 = maxDrawdowns[Math.floor(iterations * 0.95)] * 100;
+    const riskOfRuin = (ruins / iterations) * 100;
+    const optimalSize = riskOfRuin > 0 ? (0.005) : (riskPerTrade);
+    return { var95, riskOfRuin, optimalSize };
+};
+
+const generatePositionAdvice = (position: any, analysis: AnalysisResult, lang: 'ko' | 'en' = 'en'): { advice: string, action: 'HOLD' | 'REDUCE' | 'CLOSE' | 'TP_ADJUST' } => {
+    let advice = lang === 'ko' ? "포지션 유지. 기존 관점 유효함. 계획을 따르세요." : "Holding position. Thesis is still valid. Stick to the plan.";
+    let action: 'HOLD' | 'REDUCE' | 'CLOSE' | 'TP_ADJUST' = 'HOLD';
+    if (!analysis || analysis.direction === 'NEUTRAL') return { advice, action };
+    const isLong = position.type === 'LONG';
+    const isContrary = (isLong && analysis.direction === 'SHORT') || (!isLong && analysis.direction === 'LONG');
+    const score = analysis.score;
+    if (score >= 40 && score <= 60) {
+        advice = lang === 'ko' ? "단기 노이즈 발생. 원래 계획을 유지하세요. 흔들리지 마십시오." : "Market noise detected. Stick to original plan. Do not waver.";
+        action = 'HOLD';
+    }
+    if (!isContrary && score < 70) {
+        advice = lang === 'ko' ? "추세 힘이 약해지고 있습니다. 익절가(Take Profit)를 현재가 근처로 당기세요." : "Trend is weakening. Tighten your Take Profit to near current price.";
+        action = 'TP_ADJUST';
+    }
+    if (isContrary) {
+        if (score >= 60) {
+            advice = lang === 'ko' ? `치명적 반전 감지 (${analysis.direction} 우위 ${score}%). 즉시 청산하거나 스탑로스를 본전으로 옮기세요.` : `Fatal Reversal Detected (${analysis.direction} Dominance ${score}%). Close immediately or move SL to Break Even.`;
+            action = 'CLOSE';
+        } else {
+            advice = lang === 'ko' ? "반대 방향 신호가 감지되나 아직 약합니다. 주의 깊게 관찰하십시오." : "Contrary signal detected but weak. Monitor closely.";
+            action = 'HOLD';
+        }
+    }
+    return { advice, action };
+};
+
 // --- Main Engine ---
 
 export const AnalysisEngine = {
@@ -571,8 +672,8 @@ export const AnalysisEngine = {
         // --- HP1 Extension: Van Tharp SQN Auto-Calibration ---
         // Mock recent trades for SQN & Monte Carlo if not provided externally (Ideally fetched from DB)
         const mockTrades = Array.from({ length: 100 }, () => (Math.random() * 2 - 0.8) * 1.5); // Slightly positive EV
-        const sqnData = AnalysisEngine.calculateSQN(mockTrades);
-        const mcData = AnalysisEngine.runMonteCarloBootstrapping(mockTrades, 10000);
+        const sqnData = calculateSQN(mockTrades);
+        const mcData = runMonteCarloBootstrapping(mockTrades, 10000);
 
         // If SQN < 1.6, trigger kill switch
         if (sqnData.killSwitch) {
@@ -1103,6 +1204,11 @@ export const AnalysisEngine = {
         let isSmcObCloseMitigated = false;
         let isOiReversalDivergenceDetected = false;
 
+        // --- HP1 v116-D 파이널 착취: The Micro-Structure Exploiter ---
+        let isTwapDelayed = false;
+        let deepLearningScore = 0;
+        let dynamicTrailingStop: number | undefined = undefined;
+
         // 거시적 가치 영역 필터에 막히지 않은 경우에만 스캘핑 허용
         if (!isValueMigrationBlocked) {
             
@@ -1167,19 +1273,22 @@ export const AnalysisEngine = {
                 }
             }
 
-            // v116-D 어셈블리: WAE Dead Zone Chop-Filter (횡보장 차단기)
+            // v116-D 어셈블리: WAE Dead Zone Chop-Filter (초단기 타점은 Bypass)
             if (extData?.waeExplosionValue !== undefined && extData?.waeDeadZoneLevel !== undefined) {
-                if (extData.waeExplosionValue < extData.waeDeadZoneLevel) {
+                const isUltraShortSetup = isStackedImbalanceConfirmed || isEqhEqlLiquiditySweep;
+                if (extData.waeExplosionValue < extData.waeDeadZoneLevel && !isUltraShortSetup) {
                     isWaeDeadZoneBlocked = true;
-                    reasons.push(`🛑 [WAE Chop-Filter] 변동성 폭발 지수(${extData.waeExplosionValue.toFixed(1)})가 Dead Zone(${extData.waeDeadZoneLevel.toFixed(1)}) 내부에 갇혀 있습니다. 횡보장 노이즈로 판단하여 모든 타점을 강제 폐기합니다.`);
+                    reasons.push(`🛑 [WAE Chop-Filter] 변동성지수(${extData.waeExplosionValue.toFixed(1)})가 Dead Zone 내부에 있습니다. 횡보장 노이즈로 판별.`);
+                } else if (isUltraShortSetup && extData.waeExplosionValue < extData.waeDeadZoneLevel) {
+                    reasons.push(`⚡ [WAE Bypass] 변동성은 낮으나 임밸런스/스윕형 초단기 타점 포착으로 필터를 우회 진입합니다.`);
                 }
             }
 
-            // v116-D 어셈블리: MBO Iceberg Liquidity Tracker (아이스버그 추적기)
-            if (extData?.icebergReloadCount && extData.icebergReloadCount >= 5) { // 5회 이상 리필
+            // v116-D 어셈블리: MBO Iceberg Liquidity Tracker (민감도 대폭 상향: 5회 -> 2회)
+            if (extData?.icebergReloadCount && extData.icebergReloadCount >= 2) { 
                 isIcebergSustainConfirmed = true;
                 const icebergSide = currentPrice < (extData.icebergPriceLevel || 0) ? 'RESISTANCE' : 'SUPPORT';
-                reasons.push(`🧊 [Iceberg Tracker] $${extData.icebergPriceLevel} 가격대에서 기관의 기계적 리필(${extData.icebergReloadCount}회) 포착. Ultimate ${icebergSide}로 격상하여 방패로 활용합니다.`);
+                reasons.push(`🧊 [Iceberg Tracker] $${extData.icebergPriceLevel} 가격대 세력 리필(${extData.icebergReloadCount}회) 포착. 민감도 상향 적용.`);
             }
 
             // v116-D 어셈블리: SMC OB Close-Mitigation Rules (오더블록 무효화 원칙)
@@ -1193,7 +1302,45 @@ export const AnalysisEngine = {
                 isOiReversalDivergenceDetected = true;
                 // 전략 스위칭: 돌파 -> 역추세
                 rawDirection = rawDirection === 'LONG' ? 'SHORT' : 'LONG';
-                reasons.push(`📉 [OI Reversal Sniper] 극점 갱신 중 OI 감소 포착(기존 포지션 이익실험). 가짜 돌파로 규정하고 즉시 역추세(Fade) 포지션으로 스위칭합니다!`);
+                reasons.push(`📉 [OI Reversal Sniper] 극점 갱신 중 OI 감소 포착(기존 포지션 이익실현). 가짜 돌파로 규정하고 즉시 역추세(Fade) 포지션으로 스위칭합니다!`);
+            }
+
+            // v116-D 파이널 착취: 15-Minute TWAP Periodic Anomaly Tracker
+            if (extData?.isTwapAnomalyMinute) {
+                isTwapDelayed = true;
+                reasons.push(`⏱️ [TWAP Anomaly Tracker] 현재 서버 시각(XX:00, 15, 30, 45)은 기관 TWAP 봇들의 대량 기계적 체결 구역입니다. 슬리피지 회피를 위해 60초 진입 지연(Delay)을 적용합니다.`);
+            }
+
+            // v116-D 파이널 착취: FNN-LSTM-GRU Deep Learning Ensemble (임계치 0.55/0.45 완화)
+            if (extData?.fnnProb !== undefined && extData?.lstmProb !== undefined && extData?.gruProb !== undefined) {
+                // FNN(0.4) + LSTM(0.3) + GRU(0.3)
+                deepLearningScore = (extData.fnnProb * 0.4) + (extData.lstmProb * 0.3) + (extData.gruProb * 0.3);
+                
+                const isDlBullish = deepLearningScore >= 0.55;
+                const isDlBearish = deepLearningScore <= 0.45;
+                const isDlAligned = (rawDirection === 'LONG' && isDlBullish) || (rawDirection === 'SHORT' && isDlBearish);
+
+                if (!isDlAligned) {
+                    reasons.push(`🧠 [DL Ensemble Caution] 앙상블 예측치(${(deepLearningScore * 100).toFixed(1)}%)가 방향성과 불일치. 타점 강도를 약화시킵니다.`);
+                    rawScore = Math.max(0, rawScore - 20); 
+                } else {
+                    reasons.push(`🧠 [DL Ensemble Approved] 앙상블 승률 통과(${(deepLearningScore * 100).toFixed(1)}%). 단타 셋업 확증 완료.`);
+                    rawScore = Math.min(100, rawScore + 15);
+                }
+            }
+
+            // v116-D 파이널 착취: Heikin-Ashi Trend Filter & ATR Trailing Stop
+            if (extData?.heikinAshiTrend && extData.heikinAshiTrend !== 'NEUTRAL') {
+                const directionAsTrend = rawDirection === 'LONG' ? 'BULLISH' : (rawDirection === 'SHORT' ? 'BEARISH' : 'NEUTRAL');
+                if (extData.heikinAshiTrend !== directionAsTrend) {
+                    reasons.push(`🕯️ [Heikin-Ashi Filter] 백그라운드 하이킨 아시 추세(${extData.heikinAshiTrend})와 타점 수급역행 포착. 등급 하향 조정.`);
+                    rawScore = Math.max(0, rawScore - 15);
+                }
+            }
+            if (extData?.atr15m) {
+                // ATR Trailing Stop Multiplier: tighter for long, wider for short in crypto usually, but keep neutral 1.5x
+                dynamicTrailingStop = extData.atr15m * 1.5;
+                reasons.push(`🏃 [Dynamic Trailing Stop] 15분 ATR($${extData.atr15m.toFixed(2)}) 기준 동적 트레일링 스톱($${dynamicTrailingStop.toFixed(2)})이 장착되었습니다. 시장 호흡에 맞춰 수익을 지킵니다.`);
             }
 
             if (extData?.liquidationSweepDetected && extData?.rsiDivergence15m) {
@@ -1602,64 +1749,56 @@ export const AnalysisEngine = {
             const nearestSwingHigh = Math.max(...highs.slice(-20, -1));
             let rawSL = currentPrice + (atr * 2);
             if (rawSL > currentPrice && rawSL < nearestSwingHigh + (atr * 0.5)) {
-                rawSL = nearestSwingHigh + (atr * 1.5); // Push into Dark Side
+                rawSL = nearestSwingHigh + (atr * 1.5);
                 reasons.push("🌑 Dark Side SL: 청산 군집 상단 진공 구역으로 손절가 이동");
             }
             recommendedSL = rawSL;
             recommendedTP = currentPrice - (atr * 2 * rewardRatio);
         }
 
-        // --- Phase 11: Real EV Engine (The Cost Filter) ---
-        // V6.0: "Avoid Ruin" - If expected return < cost * 3, DO NOT TRADE.
-        const TRADING_FEE = 0.0008; // 0.08% (Round trip)
-        const SLIPPAGE = 0.0005;    // 0.05% (Conservative)
+        // --- Phase 11: Real EV Engine & Cost Filter & Kelly Lock ---
+        const TRADING_FEE = 0.0008; 
+        const SLIPPAGE = 0.0005;    
         const TOTAL_COST = TRADING_FEE + SLIPPAGE;
-        const COST_THRESHOLD = TOTAL_COST * 3; // 0.39%
+        const COST_THRESHOLD = TOTAL_COST * 3; 
 
         const expectedReturn = direction === 'NEUTRAL' ? 0 : (atr * 2 * rewardRatio) / currentPrice;
         let isCostRejected = false;
+        let isEvRejected = false;
 
-        if (direction !== 'NEUTRAL' && expectedReturn < COST_THRESHOLD) {
-            isCostRejected = true;
-            direction = 'NEUTRAL'; // FORCE NEUTRAL
-            recommendedSize = 0;
-            reasons.unshift(`⛔ EV < Cost (Expect ${expectedReturn.toFixed(4)} < Threshold ${COST_THRESHOLD.toFixed(4)})`);
+        if (direction !== 'NEUTRAL') {
+             // Calculate true Mathematical EV (Kelly's numerator)
+             // WinRate = winRateProxy (from above), Reward = rewardRatio, Risk = 1
+             const winRateEval = winRateProxy / 100;
+             const lossRateEval = 1 - winRateEval;
+             const mathematicalEV = (winRateEval * rewardRatio) - (lossRateEval * 1);
+
+             if (mathematicalEV <= 0) {
+                 isEvRejected = true;
+                 direction = 'NEUTRAL';
+                 recommendedSize = 0;
+                 reasons.unshift(`⛔ 진입 강제 차단: 수학적 기대값(EV) 음수 도달. 리스크 대비 보상(Reward/Risk) 불균형.`);
+             } else if (expectedReturn < COST_THRESHOLD) {
+                 isCostRejected = true;
+                 direction = 'NEUTRAL'; 
+                 recommendedSize = 0;
+                 reasons.unshift(`⛔ EV < Cost (Expect ${expectedReturn.toFixed(4)} < Threshold ${COST_THRESHOLD.toFixed(4)})`);
+             }
         }
 
-        // --- HP1 Extension: VWAP-CVD Confluence Breakout Filter ---
-        // If it's a breakout but lacks CVD support, drop it.
-        const isBreakoutAttempt = Math.abs(rawScore - 50) > 30; // Strong signal
-        if (direction !== 'NEUTRAL' && isBreakoutAttempt) {
-            const mockCVD = (currentVol > avgVol * 1.2) ? "EXPANDING" : "DIVERGING";
-            if (mockCVD === "DIVERGING") {
-                direction = 'NEUTRAL';
-                recommendedSize = 0;
-                rawScore = 50;
-                reasons.unshift(`🌊 VWAP-CVD Filter: 가격 돌파 발생 시 CVD(누적 체결 델타) 다이버전스 포착 -> 가짜 돌파(Fakeout) 강제 드랍`);
-            }
-        }
-
-        // --- HP1 v113 Extension: First-Touch Mitigation ---
-        const isFirstTouchMitigated = extData?.isFirstTouchMitigated || false;
-        if (direction !== 'NEUTRAL' && isFirstTouchMitigated) {
-            direction = 'NEUTRAL';
-            recommendedSize = 0;
-            rawScore = 50;
-            reasons.unshift(`🚫 First-Touch Mitigation: 이미 소모된(Mitigated) 레벨입니다. 2차, 3차 터치 돌파 위험으로 재진입 영구 차단.`);
-        }
-
-        // --- HP1 Extension: ATR-Volume Trailing Stop ---
+        // Inject Kelly moves to final return
         let trailingStopMsg = "";
         let peterBrandtMsg = "";
         if (direction !== 'NEUTRAL') {
-            trailingStopMsg = `📉 ATR Trailing Stop: 수익 진입 시 [평단가 ${direction === 'LONG' ? '+' : '-'}(1.5 * ${atr.toFixed(1)})] 가격을 1차 트레일링 구간으로 설정하고 추적 시작. (고정 익절 금지)`;
+            trailingStopMsg = `📉 ATR Trailing Stop: 수익 진입 시 [평단가 ${direction === 'LONG' ? '+' : '-'}(1.5 * ${atr.toFixed(1)})] 가격을 1차 트레일링 구간으로 설정.`;
             reasons.push(trailingStopMsg);
 
-            // --- HP1 v102: Peter Brandt's 3-Day 스윙 제안 ---
             if (Math.abs(rawScore - 50) > 30) {
-                peterBrandtMsg = `💎 [초대형 스윙 모드] TP1 돌파 시 20% 잔여 물량은 피터 브랜트의 '3-Day Trailing Stop(직전 3일 고점/저점 추적)'을 적용해 추세가 소멸할 때까지 무한정 홀딩하십시오.`;
+                peterBrandtMsg = `💎 [초대형 스윙 모드] 피터 브랜트의 '3-Day Trailing Stop' 적용 제안.`;
+                reasons.push(peterBrandtMsg);
             }
         }
+
 
         // 7. Text Generation (Term Reform)
         let explanation = "";
@@ -1673,7 +1812,11 @@ export const AnalysisEngine = {
 
         // --- 2. 3-Line Summary ---
         explanation += `📋 **AI 3줄 요약**\n`;
-        if (isCostRejected) {
+        if (isEvRejected) {
+            explanation += `1. **시장 바이어스**: 방향성은 정해졌으나 **수학적 기대값(EV)이 음수입니다**.\n`;
+            explanation += `2. **리스크 경고**: 보상(Reward) 대비 감수해야 할 잃을 위험(Risk)이 너무 큽니다.\n`;
+            explanation += `3. **행동 지침**: ⛔ **NO TRADE** (이런 자리에서 진입하면 결국 파산합니다)\n\n`;
+        } else if (isCostRejected) {
             explanation += `1. **시장 바이어스**: 방향성은 보이나 **수익성이 없습니다**.\n`;
             explanation += `2. **기대 수익**: ${expectedReturn.toFixed(4)} (비용 임계값 ${COST_THRESHOLD.toFixed(4)} 미달)\n`;
             explanation += `3. **행동 지침**: ⛔ **NO TRADE** (수수료를 이기지 못하는 구간입니다)\n\n`;
@@ -1726,49 +1869,112 @@ export const AnalysisEngine = {
         let reasoning_plain = "";
         let actionGrade: 'S' | 'A' | 'B' | 'C' | 'F' = 'F';
 
+        // --- [The Micro-Structure Exploiter: Decoupled OR-Logic] ---
+        // 전략 A: 30분 볼륨 클러스터 리젝션 (High WinRate, Medium Payoff)
+        const strategyA = extData?.vShapeRejectionVolCluster && Math.abs(currentPrice - extData.vShapeRejectionVolCluster) / extData.vShapeRejectionVolCluster < 0.002;
+        // 전략 B: 청산맵 스윕 + RSI 다이버전스 (Medium WinRate, High Payoff)
+        const strategyB = extData?.liquidationSweepDetected && extData?.rsiDivergence15m;
+        // 전략 C: 적응형 BB 스퀴즈 돌파 (Low WinRate, Extreme Payoff)
+        const strategyC = extData?.bollingerBands5mSqueezeActive && extData?.bollingerBands5mBreakout;
+        
+        const isOrStrategyTriggered = strategyA || strategyB || strategyC;
+
+        const MIN_ORDER_SIZE_FILTER = avgVol * 1.8; // 기존 1.5에서 1.8로 상향
+        let kellyFraction = 0.05; // 기본 리스크 관리용 5% 시작
+
+        const isGlobalCooldownActive = !!extData?.isGlobalCooldownActive;
+        const isPositionLimitReached = !!extData?.isPositionLimitReached;
+        let isPostOnlyMakerOrder = false;
+
         // Logic: Combine Indicators into One Sentence & Grade
-        if (isCostRejected) {
+        // 1. Absolute EV/Cost Blockers (High Priority Override)
+        if (isEvRejected) {
+            actionGrade = 'F';
+            kellyFraction = 0;
+            reasoning_plain = "⛔ [EV Lock] 통계적 기대값이 음수입니다. 보상 대비 잃을 위험이 더 커 진입을 절대 금지합니다.";
+        } else if (isCostRejected) {
             actionGrade = 'F'; // Force F
+            kellyFraction = 0;
             reasoning_plain = "⛔ [관망] 기대 수익이 수수료+슬리피지 비용보다 낮습니다. (EV < Cost)";
+        }
+        // 2. Strategy Triggers Priority (OR Logic) - They can override Neutral if high conviction
+        else if (isOrStrategyTriggered && !isGlobalCooldownActive && !isPositionLimitReached) {
+            actionGrade = 'S';
+            // Determine direction if Neutral
+            if (direction === 'NEUTRAL') {
+                // Heuristic: Strategy B with sweep usually implies reversal or trend continuation
+                // For simplicity, if we were neutral, we follow the probability derived from rawScore if available
+                direction = bullishProb >= 50 ? 'LONG' : 'SHORT';
+            }
+            
+            // DL Confirmation Check
+            const isDlConfirmed = (direction === 'LONG' && (deepLearningScore >= 0.55 || deepLearningScore === 0)) ||
+                                 (direction === 'SHORT' && ((deepLearningScore > 0 && deepLearningScore <= 0.45) || deepLearningScore === 0));
+
+            if (isDlConfirmed) {
+                kellyFraction = strategyA ? 0.20 : (strategyB ? 0.15 : 0.10);
+                reasoning_plain = `🎯 [S급-독립전략] 마이크로 구조 셋업 포착 (${strategyA ? 'A' : strategyB ? 'B' : 'C'}). (Kelly: ${(kellyFraction*100).toFixed(0)}%)`;
+            } else {
+                actionGrade = 'B';
+                kellyFraction = 0.05;
+                reasoning_plain = "⚠️ [독립전략] 변동성 포착되었으나 DL 확증 실패. 보수적 진입.";
+            }
         } else if (direction === 'LONG') {
-            if (currentPrice > ema200 && currentVol > avgVol * 1.5 && trendScore === 100 && rsi < 60) {
+            // DL 임계치 0.55 완화 적용
+            const isDlConfirmed = deepLearningScore >= 0.55 || deepLearningScore === 0;
+
+            if (currentPrice > ema200 && currentVol > MIN_ORDER_SIZE_FILTER && trendScore === 100 && rsi < 60) {
                 actionGrade = 'S';
-                reasoning_plain = "🚀 [S급] 장기 추세 + 거래량 폭발 + 정배열. 강력 매수 기회 (비중 50% 권장).";
-            } else if (trendScore >= 80 && currentVol > avgVol * 1.2) {
+                kellyFraction = 0.12; 
+                reasoning_plain = "🚀 [S급] 강력한 추세 매수 신호.";
+            } else if (trendScore >= 80 && currentVol > MIN_ORDER_SIZE_FILTER) {
                 actionGrade = 'A';
-                reasoning_plain = "✅ [A급] 추세와 수급이 일치합니다. 분할 진입 권장 (비중 30%).";
+                kellyFraction = 0.08;
+                reasoning_plain = "✅ [A급] 추세와 수급이 일치합니다.";
             } else if (rsi < 30) {
                 actionGrade = 'B';
-                reasoning_plain = "📉 [B급] 과매도 반등(Mean Reversion) 시도. 소액 진입 (비중 10%).";
+                kellyFraction = 0.05;
+                reasoning_plain = "📉 [B급] 과매도 반등(Mean Reversion) 시도. 소액 진입.";
             } else if (trendScore > 50) {
                 actionGrade = 'C';
-                reasoning_plain = "⚠️ [C급] 상승 우위이나 모멘텀이 약합니다. 관망하거나 매우 적게 진입하세요.";
+                kellyFraction = 0.03;
+                reasoning_plain = "⚠️ [C급] 상승 우위이나 모멘텀이 약합니다.";
             } else {
                 reasoning_plain = "⛔ 조건 불충분. 자본을 지키십시오.";
             }
         } else if (direction === 'SHORT') {
-            if (currentPrice < ema200 && currentVol > avgVol * 1.5 && trendScore === 0 && rsi > 40) {
+            const isDlConfirmed = (deepLearningScore > 0 && deepLearningScore <= 0.45) || deepLearningScore === 0;
+
+            if (currentPrice < ema200 && currentVol > MIN_ORDER_SIZE_FILTER && trendScore === 0 && rsi > 40) {
                 actionGrade = 'S';
-                reasoning_plain = "📉 [S급] 주요 지지 붕괴 + 거래량 실림 + 역배열. 강력 매도 기회 (비중 50%).";
-            } else if (trendScore <= 20 && currentVol > avgVol * 1.2) {
+                kellyFraction = 0.12;
+                reasoning_plain = "📉 [S급] 강력한 매도 기회.";
+            } else if (trendScore <= 20 && currentVol > MIN_ORDER_SIZE_FILTER) {
                 actionGrade = 'A';
-                reasoning_plain = "✅ [A급] 하락 추세와 매도세가 일치합니다. 반등 시 매도 (비중 30%).";
-            } else if (rsi > 70) {
-                actionGrade = 'B';
-                reasoning_plain = "🔥 [B급] 과열권(RSI > 70) 도달. 기술적 조정 기대 (비중 10%).";
-            } else if (trendScore < 50) {
-                actionGrade = 'C';
-                reasoning_plain = "⚠️ [C급] 하락 우위이나 신호가 혼잡합니다. 보수적 접근 필요.";
+                kellyFraction = 0.08;
+                reasoning_plain = "✅ [A급] 하락 추세와 매도세가 일치합니다.";
             } else {
-                reasoning_plain = "⛔ 조건 불충분. 쉬는 것도 투자입니다.";
+                actionGrade = 'F';
+                reasoning_plain = "⛔ [필터탈락] 매도 수급 불충분.";
             }
         } else {
             // Neutral
             actionGrade = 'F';
-            if (atrPercent < 0.5) {
-                reasoning_plain = "💤 [F급] 변동성 실종(Low Vol). 폭풍 전의 고요. 절대 진입 금지.";
+            reasoning_plain = "⚖️ [F급] 방향성 부재. 관망이 최고의 수익입니다.";
+        }
+
+        // --- [Global Governance Override] ---
+        if (actionGrade !== 'F') {
+            if (isGlobalCooldownActive) {
+                actionGrade = 'F';
+                kellyFraction = 0;
+                reasoning_plain = "🛡️ [글로벌 차단] 쿨다운(1분 내 재진입 방지) 가동 중입니다.";
+            } else if (isPositionLimitReached) {
+                actionGrade = 'F';
+                kellyFraction = 0;
+                reasoning_plain = "🛡️ [글로벌 차단] 최대 포지션 한도 도달. 추가 진입이 제한됩니다.";
             } else {
-                reasoning_plain = "⚖️ [F급] 방향성 부재. 관망이 최고의 수익입니다.";
+                isPostOnlyMakerOrder = true; // Post-Only by default for all entries
             }
         }
 
@@ -1778,16 +1984,17 @@ export const AnalysisEngine = {
             bearishProb,
             direction,
             reasons: reasons.slice(0, 3),
-            explanation, // Consider moving bulky text generation to client-side too if bandwidth is concern, but for now keep here
+            explanation,
             reasoning_plain,
             actionGrade,
             details,
             riskLevel,
             atr,
+            kellyFraction,
             // v53.0 Indicators
             rsiDivergenceSweepConfirmed: divergence !== null,
-            adaptiveRollingWindowDays: atrPercent > 2 ? 5 : 10, // Adjust window based on volatility
-            monteCarloRiskOfRuin: actionGrade === 'S' ? 1.5 : actionGrade === 'A' ? 4.2 : actionGrade === 'B' ? 12.5 : actionGrade === 'C' ? 35.0 : 85.0,
+            adaptiveRollingWindowDays: atrPercent > 2 ? 5 : 10,
+            monteCarloRiskOfRuin: mcData.riskOfRuin,
 
             // HP1 v56.0
             cvdTrapConfirmed,
@@ -1807,6 +2014,11 @@ export const AnalysisEngine = {
             trailingStopMsg,
             peterBrandtMsg,
             maxTP,
+            
+            // HP1 v117 Safety
+            isGlobalCooldownActive,
+            isPositionLimitReached,
+            isPostOnlyMakerOrder,
             isCompressZone,
             compressZoneDetails,
             isMarketNeutralPairsTrade,
@@ -1906,7 +2118,13 @@ export const AnalysisEngine = {
             isWaeDeadZoneBlocked,
             isIcebergSustainConfirmed,
             isSmcObCloseMitigated,
-            isOiReversalDivergenceDetected
+            isOiReversalDivergenceDetected,
+            
+            // HP1 v116-D 파이널 착취: The Micro-Structure Exploiter
+            isTwapDelayed,
+            deepLearningScore,
+            dynamicTrailingStop,
+            heikinAshiTrend: extData?.heikinAshiTrend
         } as any; 
     },
 
@@ -2114,110 +2332,5 @@ export const AnalysisEngine = {
 
         return { margin: marginUSDT, leverage, limitPrice, sl, tp1, tp2, tp3, tp, tp1Ratio, tp2Ratio, tp3Ratio, reason, isPyramidEligible, isFrontRunOffsetApplied };
     },
-
-    // --- HP1 Extension: The SQN & ATR Pinnacle Helpers ---
-    calculateSQN: (trades: number[]): { sqn: number, msg: string, killSwitch: boolean, lambdaModifier: number } => {
-        if (trades.length < 30) return { sqn: 2.0, msg: "Need more trades for SQN", killSwitch: false, lambdaModifier: 1.0 };
-        const mean = trades.reduce((a, b) => a + b, 0) / trades.length;
-        const variance = trades.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / trades.length;
-        const stdDev = Math.sqrt(variance);
-        const sqn = (mean / (stdDev || 1)) * Math.sqrt(trades.length);
-        
-        let msg = `SQN: ${sqn.toFixed(2)}`;
-        let killSwitch = false;
-        let lambdaModifier = 1.0;
-
-        if (sqn > 3.0) {
-            msg = `⭐ [SQN 우수 국면] SQN ${sqn.toFixed(2)} > 3.0. 켈리 시스템 공격성(Lambda) 상향 적용.`;
-            lambdaModifier = 1.5;
-        } else if (sqn < 1.6) {
-            msg = `⚠️ [경고: SQN 붕괴] SQN ${sqn.toFixed(2)} < 1.6. 전략 불일치 위험으로 시그널 발송 일시 중단(Kill Switch).`;
-            killSwitch = true;
-            lambdaModifier = 0.0;
-        }
-        return { sqn, msg, killSwitch, lambdaModifier };
-    },
-
-    runMonteCarloBootstrapping: (trades: number[], iterations: number = 10000) => {
-        const maxDrawdowns = [];
-        let ruins = 0;
-        const baseCapital = 10000;
-        const riskPerTrade = 0.02; // 2% Base
-
-        for (let i = 0; i < iterations; i++) {
-            let capital = baseCapital;
-            let peak = baseCapital;
-            let maxDd = 0;
-            // simulate 100 trades with replacement
-            for (let j = 0; j < 100; j++) {
-                const randomTrade = trades[Math.floor(Math.random() * trades.length)];
-                const tradePnl = capital * riskPerTrade * randomTrade; // assuming randomTrade is R-multiple
-                capital += tradePnl;
-                if (capital > peak) peak = capital;
-                const dd = (peak - capital) / peak;
-                if (dd > maxDd) maxDd = dd;
-                if (capital <= 0) {
-                    ruins++;
-                    break;
-                }
-            }
-            maxDrawdowns.push(maxDd);
-        }
-        
-        maxDrawdowns.sort((a, b) => a - b);
-        const var95 = maxDrawdowns[Math.floor(iterations * 0.95)] * 100; // 95th pct drawdown
-        const riskOfRuin = (ruins / iterations) * 100;
-        const optimalSize = riskOfRuin > 0 ? (0.005) : (riskPerTrade); // If ROR > 0, slash risk
-
-        return { var95, riskOfRuin, optimalSize };
-    },
-
-    // 6. Generate Position Advice (Consistency Protocol)
-    generatePositionAdvice: (position: any, analysis: AnalysisResult, lang: 'ko' | 'en' = 'en'): { advice: string, action: 'HOLD' | 'REDUCE' | 'CLOSE' | 'TP_ADJUST' } => {
-        // Default
-        let advice = lang === 'ko'
-            ? "포지션 유지. 기존 관점 유효함. 계획을 따르세요."
-            : "Holding position. Thesis is still valid. Stick to the plan.";
-        let action: 'HOLD' | 'REDUCE' | 'CLOSE' | 'TP_ADJUST' = 'HOLD';
-
-        if (!analysis || analysis.direction === 'NEUTRAL') return { advice, action };
-
-        const isLong = position.type === 'LONG';
-        const isContrary = (isLong && analysis.direction === 'SHORT') || (!isLong && analysis.direction === 'LONG');
-        const score = analysis.score;
-
-        // CASE C: Noise (Score 40-60) -> Hold
-        if (score >= 40 && score <= 60) {
-            advice = lang === 'ko'
-                ? "단기 노이즈 발생. 원래 계획을 유지하세요. 흔들리지 마십시오."
-                : "Market noise detected. Stick to original plan. Do not waver.";
-            action = 'HOLD';
-        }
-
-        // CASE A: Weakening (Same direction but low score, or slight contrary)
-        if (!isContrary && score < 70) {
-            advice = lang === 'ko'
-                ? "추세 힘이 약해지고 있습니다. 익절가(Take Profit)를 현재가 근처로 당기세요."
-                : "Trend is weakening. Tighten your Take Profit to near current price.";
-            action = 'TP_ADJUST';
-        }
-
-        // CASE B: Fatal Reversal
-        if (isContrary) {
-            if (score >= 60) {
-                advice = lang === 'ko'
-                    ? `치명적 반전 감지 (${analysis.direction} 우위 ${score}%). 즉시 청산하거나 스탑로스를 본전으로 옮기세요.`
-                    : `Fatal Reversal Detected (${analysis.direction} Dominance ${score}%). Close immediately or move SL to Break Even.`;
-                action = 'CLOSE';
-            } else {
-                // Weak contrary
-                advice = lang === 'ko'
-                    ? "반대 방향 신호가 감지되나 아직 약합니다. 주의 깊게 관찰하십시오."
-                    : "Contrary signal detected but weak. Monitor closely.";
-                action = 'HOLD';
-            }
-        }
-
-        return { advice, action };
-    }
+    generatePositionAdvice
 };

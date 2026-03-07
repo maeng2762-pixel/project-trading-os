@@ -14,24 +14,13 @@ export async function POST(req: Request) {
         const minutes = now.getMinutes();
         const hourUTC = now.getUTCHours();
         
-        // --- HP1 Extension: SMC Session Kill-Zone Lock ---
-        // London Open Kill Zone: 07:00 ~ 11:00 UTC 
-        // NY Open Kill Zone: 12:00 ~ 16:00 UTC
-        const isLondonKillZone = hourUTC >= 7 && hourUTC < 11;
-        const isNYKillZone = hourUTC >= 12 && hourUTC < 16;
-        
-        if (!isLondonKillZone && !isNYKillZone) {
-            console.log(`⏱️ SMC Session Lock: 현재 시간(${hourUTC}시 UTC)은 Kill-Zone 밖입니다. 시그널 발송 차단.`);
-            return NextResponse.json({ success: true, status: "Out of Session Kill-Zone" });
-        }
-
         // 1.5. 정각, 15분, 30분, 45분 부근(±1분) 인지 체크
         const isTwapZone = 
             (minutes >= 59 || minutes <= 1) || 
             (minutes >= 14 && minutes <= 16) || 
             (minutes >= 29 && minutes <= 31) || 
             (minutes >= 44 && minutes <= 46);
-
+        
         if (isTwapZone) {
             console.log("⏳ 15-Min TWAP Noise Offset 작동: 기관 노이즈 회피를 위해 60초 지연 대기...");
             await new Promise((resolve) => setTimeout(resolve, 60000)); // 60s delay
@@ -252,6 +241,17 @@ export async function POST(req: Request) {
             }
         }
 
+        // --- HP1 v118: SMC Session Kill-Zone Lock (Post-Analysis) ---
+        // Intraday Scalp signals are EXEMPT from Session Lock to capture 24/7 volatility clusters.
+        const isLondonKillZone = hourUTC >= 7 && hourUTC < 11;
+        const isNYKillZone = hourUTC >= 12 && hourUTC < 16;
+        const isOutsideSmcSession = !isLondonKillZone && !isNYKillZone;
+
+        if (isOutsideSmcSession && !analysis.isIntradayScalp) {
+            console.log(`⏱️ SMC Session Lock: 현재 시간(${hourUTC}시 UTC)은 Kill-Zone 밖입니다. 표준 시그널 발송 차단.`);
+            return NextResponse.json({ success: true, status: "Out of Session Kill-Zone (Standard Signal)" });
+        }
+
         // Filter out bad signals
         if (analysis.direction === 'NEUTRAL' || !isGradeAccepted) {
              console.log(`Trades Filter Auto-Calibration: 노이즈 필터링됨 (현재 빈도 ${extData.tradesIn24h}회/24h -> 요구 등급: ${dynamicMinGrade.join('/')})`);
@@ -278,6 +278,13 @@ export async function POST(req: Request) {
              console.log("🛑 WAE Dead Zone Block: 변동성/거래량 실종(Chop Market) 상태. 신호 송출 차단.");
              return NextResponse.json({ success: true, status: `Blocked by WAE Dead Zone (Low Volatility)` });
         }
+
+        // --- HP1 v116-D 파이널 착취: Micro-Structure Exploiter (지연 진입 및 앙상블 리포트) ---
+        if (analysis.isTwapDelayed) {
+             console.log("⏱️ TWAP Anomaly Detected: 기관 TWAP 봇 밀집 구간. 슬리피지 회피를 위해 60초 지연 후 발송합니다.");
+             await new Promise(resolve => setTimeout(resolve, 60000)); // 60초 대기
+        }
+
         if (analysis.isCumDeltaDivergenceBlocked) {
              console.log("🛑 Cum-Delta Divergence Block: 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.");
              return NextResponse.json({ success: true, status: `Blocked by Missing Cum-Delta Divergence` });
@@ -368,12 +375,16 @@ export async function POST(req: Request) {
 
             if (analysis.isIntradayScalp) {
                 const slText = analysis.direction === 'LONG' ? (personalRisk.limitPrice * 0.995).toFixed(2) : (personalRisk.limitPrice * 1.005).toFixed(2);
+                const delayText = analysis.isTwapDelayed ? `\n⏳ <b>[TWAP 폭격 회피]</b>: 기관 봇 연쇄 체결(XX:00,15,30,45) 감지. 60초 진입 지연(Delay)이 추가 적용되었습니다!` : ``;
+                const dlText = analysis.deepLearningScore ? `\n🧠 <b>[DL 앙상블 승률]</b>: ${(analysis.deepLearningScore * 100).toFixed(1)}%` : ``;
+                const haText = analysis.heikinAshiTrend ? `\n🕯️ <b>[HA 추세 필터]</b>: ${analysis.heikinAshiTrend}` : ``;
+
                 message = `⚡ <b>[장중 킬존 도달] 변동성 스캘핑 타점 포착!</b> ⚡\n` +
                           llmLabel +
                           `⚠️ (본 타점은 거시 필터를 무시한 Day Trading 셋업입니다)\n\n` +
-                          `🎯 <b>타겟</b>: BTCUSDT (비트코인 무기한 선물)\n` +
+                          `🎯 <b>타켓</b>: BTCUSDT (비트코인 무기한 선물)\n` +
                           `⚔️ <b>방향</b>: ${directionEmoji} ${directionName} - ${analysis.direction === 'LONG' ? '"청산맵 스윕 완료. 숏충이들의 무덤에서 반등을 먹습니다."' : '"매수벽 붕괴 스윕. 롱충이들의 포모를 박살냅니다."'}\n` +
-                          `📌 <b>진입가(Entry)</b>: ${personalRisk.limitPrice.toFixed(2)} [세력 프론트러닝 지정가 대기]\n\n`;
+                          `📌 <b>진입가(Entry)</b>: ${personalRisk.limitPrice.toFixed(2)} [세력 프론트러닝 지정가 대기]${delayText}${dlText}${haText}\n\n`;
 
                 message += `🔬 <b>[장중 스캘핑 근거]</b>\n` +
                            `- <b>단기 타점 트리거</b>: ${analysis.intradayReason}\n\n`;
