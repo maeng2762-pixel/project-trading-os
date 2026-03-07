@@ -273,6 +273,20 @@ export async function POST(req: Request) {
              return NextResponse.json({ success: true, status: `Blocked by LASSO 15M Mismatch` });
         }
 
+        // --- HP1 v116-D 마이크로 구조 심화: The Intraday Micro-Sniper (하드블록/베일아웃) ---
+        if (analysis.isCumDeltaDivergenceBlocked) {
+             console.log("🛑 Cum-Delta Divergence Block: 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.");
+             return NextResponse.json({ success: true, status: `Blocked by Missing Cum-Delta Divergence` });
+        }
+        if (analysis.isFootprintBailoutActive) {
+             console.log("🛑 Footprint Bailout: 델타와 캔들의 모순 트랩 감지! 시장가 통제에 따른 진입 강제 차단(Bailout).");
+             return NextResponse.json({ success: true, status: `Blocked by Footprint Trapped Reversal Bailout` });
+        }
+        if (analysis.isInverseMomentumBailoutActive) {
+             console.log("🛑 Squeeze Inverse Momentum Bailout: 스퀴즈 돌파 직후 꺾이는 가짜 모멘텀 감지! 즉시 진입 차단(Bailout).");
+             return NextResponse.json({ success: true, status: `Blocked by Squeeze Inverse Momentum Bailout` });
+        }
+
         // --- HP1 v116: Sub-Minute TCT Slippage Evasion (최초 4초 맹독성 유동성 회피) ---
         const startSecond = new Date().getSeconds();
         if (startSecond <= 4) {

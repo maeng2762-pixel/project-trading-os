@@ -156,6 +156,12 @@ export interface AnalysisResult {
     // --- HP1 v116-D 데이 모드 파이널: The Intraday Apex ---
     isLasso15mBlocked?: boolean;
     lasso15mDirection?: 'LONG' | 'SHORT' | 'NEUTRAL';
+
+    // --- HP1 v116-D 마이크로 구조 심화: The Intraday Micro-Sniper ---
+    isCumDeltaDivergenceBlocked?: boolean;
+    isFootprintBailoutActive?: boolean;
+    isInverseMomentumBailoutActive?: boolean;
+    mtfSqueezeSlOverride?: number;
 }
 
 export interface ExtData {
@@ -260,6 +266,15 @@ export interface ExtData {
     isMegaFvgRetracement?: boolean; // 다중 연속 FVG 병합 존으로의 회귀 타점
     nextThickVolumeNode?: number; // 목표가 앞의 가장 두꺼운 볼륨 매물대 레벨
     lasso15mDirection?: 'LONG' | 'SHORT' | 'NEUTRAL'; // 15분 LASSO 회귀 모델 예측 방향
+
+    // --- HP1 v116-D 마이크로 구조 심화: The Intraday Micro-Sniper ---
+    cumDelta1mDivergence?: 'BULLISH' | 'BEARISH' | 'NONE'; // 가격과 누적 델타 방향성 다이버전스
+    footprintReversalWarning1m?: boolean; // 단일 풋프린트 모순점 발생 여부 (역방향 음봉/양봉)
+    mtfBollingerBandSRArea?: boolean; // 다중 시간대 M5, M15, M30, H1 볼린저 밴드 겹침 구간
+    hasVolumeExpansion?: boolean; // 볼륨 확장 동반 여부
+    inverseMomentumBailout?: boolean; // 모멘텀 역방향 꺾임 발생 (가짜 돌파 확인)
+    breakoutSignalCandleHigh?: number; // 스퀴즈 돌파 신호 캔들 고점
+    breakoutSignalCandleLow?: number; // 스퀴즈 돌파 신호 캔들 저점
 }
 
 // --- Basic Indicator Functions ---
@@ -1043,6 +1058,12 @@ export const AnalysisEngine = {
         // --- HP1 v116-D 파이널: 15-Min LASSO Directional Estimator ---
         let isLasso15mBlocked = false;
 
+        // --- HP1 v116-D 마이크로 구조 심화: The Intraday Micro-Sniper ---
+        let isCumDeltaDivergenceBlocked = false;
+        let isFootprintBailoutActive = false;
+        let isInverseMomentumBailoutActive = false;
+        let mtfSqueezeSlOverride: number | undefined = undefined;
+
         // 거시적 가치 영역 필터에 막히지 않은 경우에만 스캘핑 허용
         if (!isValueMigrationBlocked) {
             
@@ -1054,6 +1075,23 @@ export const AnalysisEngine = {
                 } else {
                     reasons.push(`🤖 [LASSO Estimator] 15분 L1 정규화 모델 예측 결과와 방향성 정렬(Aligned) 완료. 켈리 비중 정상 할당!`);
                 }
+            }
+
+            // v116-D 마이크로: 1-Min Cum-Delta Divergence Trigger (누적 델타 조준기)
+            if (extData?.cumDelta1mDivergence && extData.cumDelta1mDivergence !== 'NONE') {
+                const isBullishDiv = extData.cumDelta1mDivergence === 'BULLISH';
+                if ((rawDirection === 'LONG' && !isBullishDiv) || (rawDirection === 'SHORT' && isBullishDiv)) {
+                    isCumDeltaDivergenceBlocked = true;
+                    reasons.push(`⏱️ [Cum-Delta Filter] 단기 S/R 부근 다이버전스 침묵. 세력 개입(Buy/Sell Confirmation) 부재로 안전을 위해 타점을 강제 취소합니다.`);
+                } else {
+                    reasons.push(`⏱️ [Cum-Delta Filter] 1분봉 누적 델타 다이버전스(세력 개입) 확증 완료! 역추세/돌파 타점 승인.`);
+                }
+            }
+
+            // v116-D 마이크로: Single-Footprint Warning Exit (단일 풋프린트 모순 탈출기)
+            if (extData?.footprintReversalWarning1m) {
+                isFootprintBailoutActive = true;
+                reasons.push(`🔬 [Footprint Bailout] 1분/5분봉 풋프린트 내 캔들 종가 방향과 내부 델타의 심각한 모순 포착(Reversal Warning). 역방향 세력 트랩 가능성에 즉각 포지션 전량 탈출(Bailout)을 발동합니다!`);
             }
 
             if (extData?.liquidationSweepDetected && extData?.rsiDivergence15m) {
@@ -1072,6 +1110,15 @@ export const AnalysisEngine = {
                      (extData.bollingerBands5mBreakout === 'DOWN' && rawDirection === 'SHORT')) {
                      isIntradayScalp = true;
                      intradayReason = `🗜️ [BB Squeeze Breakout] 5m 적응형 볼린저밴드 극도 수축(폭풍 전야) 구간 돌파 확인! 거래량 폭발 동반. ${extData.bollingerBands5mBreakout} 장중 돌파 셋업 승인.`;
+
+                     // v116-D 마이크로: Squeeze "Breakout or Bailout" Risk Lock
+                     if (extData.inverseMomentumBailout) {
+                         isInverseMomentumBailoutActive = true;
+                         reasons.push(`🏹 [Squeeze Bailout] 볼린저 밴드 스퀴즈 돌파 직후 모멘텀 역방향 꺾임(Inverse Momentum) 감지! 가짜 돌파 리스크로 판단, 전량 즉시 손절(Bailout) 처리합니다!`);
+                     } else if (extData.breakoutSignalCandleHigh && extData.breakoutSignalCandleLow) {
+                         mtfSqueezeSlOverride = rawDirection === 'LONG' ? extData.breakoutSignalCandleLow : extData.breakoutSignalCandleHigh;
+                         reasons.push(`🏹 [Squeeze Risk Lock] 스퀴즈 돌파 신호 포착. Breakout or Bailout 원칙에 따라 돌파 캔들의 꼬리($${mtfSqueezeSlOverride.toFixed(2)})에 절대 하드 스탑(Hard Stop)을 자동 설정합니다.`);
+                     }
                  }
             }
 
@@ -1102,6 +1149,10 @@ export const AnalysisEngine = {
                     // v116-D 파이널: Consecutive FVG Merge Sniper
                     isIntradayScalp = true;
                     intradayReason = "🕳️ [Consecutive FVG Sniper] 조각난 FVG가 하나로 병합된 거대 진공 풀(Mega-FVG) 진입 확인. 즉각 자석 효과에 몸을 싣고 스나이핑 발동!";
+                } else if (extData?.mtfBollingerBandSRArea && extData?.hasVolumeExpansion === false) {
+                    // v116-D 마이크로: MTF Bollinger Band Alignment
+                    isIntradayScalp = true;
+                    intradayReason = "🧱 [MTF BB Alignment] M5/M15/M30/H1 다중 시간대 볼린저 밴드 밀집 구역 타격. 볼륨 확장 부재(가짜 추세) 확증, 강한 역추세 스캘핑(Fade) 발동!";
                 } else if (extData?.multipleHvnLocked && extData?.microAbsorptionConfirmed1m) {
                     // v116-D 심화: Micro-Absorption & Multiple HVN
                     isIntradayScalp = true;
@@ -1731,7 +1782,12 @@ export const AnalysisEngine = {
             isValueMigrationBlocked,
             // HP1 v116-D 데이 모드 파이널: The Intraday Apex
             isLasso15mBlocked,
-            lasso15mDirection: extData?.lasso15mDirection
+            lasso15mDirection: extData?.lasso15mDirection,
+            // HP1 v116-D 마이크로 구조 심화: The Intraday Micro-Sniper
+            isCumDeltaDivergenceBlocked,
+            isFootprintBailoutActive,
+            isInverseMomentumBailoutActive,
+            mtfSqueezeSlOverride
         } as any; // Cast as any because we are changing the return shape potentially, but let's keep it compatible if possible or update interface
     },
 
@@ -1745,8 +1801,14 @@ export const AnalysisEngine = {
         mode: 'BLUE' | 'RED' = 'BLUE'
     ): { margin: number; leverage: number; limitPrice: number; sl: number; tp1: number; tp2: number; tp3: number; tp: number; tp1Ratio: number; tp2Ratio: number; tp3Ratio: number; reason: string; isPyramidEligible?: boolean; isFrontRunOffsetApplied?: boolean } => {
 
-        if (signal.actionGrade === 'F' || signal.isLasso15mBlocked) {
-            return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: signal.isLasso15mBlocked ? "🚨 [LASSO 15M Mismatch] 모델 예측과 진입 방향 이탈로 켈리 비중 0% (진입 차단)." : "Signal Grade F. Do not trade." };
+        if (signal.actionGrade === 'F' || signal.isLasso15mBlocked || signal.isCumDeltaDivergenceBlocked || signal.isFootprintBailoutActive || signal.isInverseMomentumBailoutActive) {
+            let reason = "Signal Grade F. Do not trade.";
+            if (signal.isLasso15mBlocked) reason = "🚨 [LASSO 15M Mismatch] 모델 예측과 진입 방향 이탈로 켈리 비중 0% (진입 차단).";
+            else if (signal.isCumDeltaDivergenceBlocked) reason = "🚨 [Cum-Delta Filter] 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.";
+            else if (signal.isFootprintBailoutActive) reason = "🚨 [Footprint Bailout] 델타와 캔들의 모순 트랩 감지! 시장가 강제 대피(Bailout).";
+            else if (signal.isInverseMomentumBailoutActive) reason = "🚨 [Squeeze Bailout] 스퀴즈 돌파 직후 꺾이는 가짜 모멘텀 감지! 즉시 손절 탈출(Bailout).";
+
+            return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason };
         }
 
         // SL/TP logic remains pure technical (ATR based)
@@ -1783,13 +1845,13 @@ export const AnalysisEngine = {
         let sl = 0, tp = 0;
         let tp1 = 0, tp2 = 0, tp3 = 0;
         if (signal.direction === 'LONG') {
-            sl = currentPrice - slDist;
+            sl = (signal as any).mtfSqueezeSlOverride ?? (currentPrice - slDist);
             tp1 = currentPrice + tp1Dist;
             tp2 = currentPrice + tp2Dist;
             tp3 = currentPrice + tp3Dist;
             tp = tp3; 
         } else if (signal.direction === 'SHORT') {
-            sl = currentPrice + slDist;
+            sl = (signal as any).mtfSqueezeSlOverride ?? (currentPrice + slDist);
             tp1 = currentPrice - tp1Dist;
             tp2 = currentPrice - tp2Dist;
             tp3 = currentPrice - tp3Dist;
