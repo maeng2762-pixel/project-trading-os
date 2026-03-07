@@ -287,6 +287,16 @@ export async function POST(req: Request) {
              return NextResponse.json({ success: true, status: `Blocked by Squeeze Inverse Momentum Bailout` });
         }
 
+        // --- HP1 v116-D 캡스톤: The Immortal Day-Trader (서킷 브레이커 & 베일아웃) ---
+        if (analysis.isCircuitBreakerActive) {
+             console.log("🛡️ Circuit Breaker Active: 3연패 셧다운 발동. 향후 12시간 동안 데이 모드 모든 신호 Mute.");
+             return NextResponse.json({ success: true, status: `Blocked by Circuit Breaker (3 Consecutive Losses)` });
+        }
+        if (analysis.isFootprintReverseBailout) {
+             console.log("🚨 Footprint Reverse Bailout: 트레일링 중 수급 역전 감지. 긴급 탈출 시그널 송출.");
+             // Note: In a real webhook, this might trigger a 'CLOSE' signal to exchange
+        }
+
         // --- HP1 v116: Sub-Minute TCT Slippage Evasion (최초 4초 맹독성 유동성 회피) ---
         const startSecond = new Date().getSeconds();
         if (startSecond <= 4) {

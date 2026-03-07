@@ -162,6 +162,14 @@ export interface AnalysisResult {
     isFootprintBailoutActive?: boolean;
     isInverseMomentumBailoutActive?: boolean;
     mtfSqueezeSlOverride?: number;
+
+    // --- HP1 v116-D 데이 모드 파이널 캡스톤: The Immortal Day-Trader ---
+    isVShapeRejectionPullback?: boolean;
+    isStealthOrderConfirmed?: boolean;
+    isFootprintReverseBailout?: boolean;
+    isCircuitBreakerActive?: boolean;
+    recentLossCount?: number;
+    leverageMultiplier?: number;
 }
 
 export interface ExtData {
@@ -245,6 +253,9 @@ export interface ExtData {
     vwapBreakoutDetected?: boolean;
     volumeClusterFirstTouch?: boolean;
     vwapLevel?: number;
+    vShapeRejectionVolCluster?: number;
+    fractionalOrderRatio?: number; // 0.0 ~ 1.0 (Non-integer granular fractions)
+    recentTradeResults?: ('WIN' | 'LOSS')[]; // Recent v116-D branch history
 
     // --- HP1 v116-D 데이트레이딩 심화: The Intraday Apex Predator ---
     liquidationClusterPersistenceHours?: number; // 히트맵 상 유지 시간 (12시간 이상)
@@ -1064,6 +1075,14 @@ export const AnalysisEngine = {
         let isInverseMomentumBailoutActive = false;
         let mtfSqueezeSlOverride: number | undefined = undefined;
 
+        // --- HP1 v116-D 데이 모드 파이널 캡스톤: The Immortal Day-Trader ---
+        let isVShapeRejectionPullback = false;
+        let isStealthOrderConfirmed = false;
+        let isFootprintReverseBailout = false;
+        let isCircuitBreakerActive = false;
+        let recentLossCount = 0;
+        let leverageMultiplier = 1.0;
+
         // 거시적 가치 영역 필터에 막히지 않은 경우에만 스캘핑 허용
         if (!isValueMigrationBlocked) {
             
@@ -1092,6 +1111,40 @@ export const AnalysisEngine = {
             if (extData?.footprintReversalWarning1m) {
                 isFootprintBailoutActive = true;
                 reasons.push(`🔬 [Footprint Bailout] 1분/5분봉 풋프린트 내 캔들 종가 방향과 내부 델타의 심각한 모순 포착(Reversal Warning). 역방향 세력 트랩 가능성에 즉각 포지션 전량 탈출(Bailout)을 발동합니다!`);
+            }
+
+            // v116-D 캡스톤: V-Shape Rejection Cluster Pullback (V자 거절 볼륨 샌드박스)
+            if (extData?.vShapeRejectionVolCluster) {
+                 const distToCluster = Math.abs(currentPrice - extData.vShapeRejectionVolCluster) / currentPrice;
+                 if (distToCluster < 0.001) { // 0.1% 이내 첫 터치
+                     isIntradayScalp = true;
+                     isVShapeRejectionPullback = true;
+                     intradayReason = `🛑 [V-Shape Rejection Pullback] 급격한 V자 반전 꼬리 내 최대 거래량 클러스터($${extData.vShapeRejectionVolCluster}) 도달. 강한 지지/저항 확인으로 S급 역추세 진입합니다.`;
+                 }
+            }
+
+            // v116-D 캡스톤: Fractional Stealth Order Confirmation (스텔스 동력 확증)
+            if (extData?.fractionalOrderRatio && extData.fractionalOrderRatio > 0.65) { // 스텔스 비중 65% 이상
+                isStealthOrderConfirmed = true;
+                reasons.push(`🕵️‍♂️ [Stealth Flow] 기관 스텔스 물량(Non-integer fractions) 비중 급증(${ (extData.fractionalOrderRatio * 100).toFixed(1) }%). 스마트 머니의 동력 확증 완료.`);
+            }
+
+            // v116-D 캡스톤: Footprint Warning Signal Bailout (수급 역전 감지)
+            if (extData?.recentTradeResults?.[0] === undefined) { // Not in calculation per se, but setup flags
+                // Placeholder to check if we are in a position. In real scenario, currentPosition is passed.
+                // If Short + Positive Delta/Imbalance OR Long + Negative Delta/Imbalance => Bailout
+            }
+
+            // v116-D 캡스톤: Algorithmic Edge Circuit Breaker (심리 보호망)
+            if (extData?.recentTradeResults) {
+                for (const res of extData.recentTradeResults) {
+                    if (res === 'LOSS') recentLossCount++;
+                    else break;
+                }
+                if (recentLossCount >= 3) {
+                    isCircuitBreakerActive = true;
+                    reasons.push(`🛡️ [Circuit Breaker] 데이 모드 잇단 3연패 감지. 시장 레짐 부적합(Toxic)으로 판단하여 12시간 셧다운을 발동합니다.`);
+                }
             }
 
             if (extData?.liquidationSweepDetected && extData?.rsiDivergence15m) {
@@ -1586,7 +1639,7 @@ export const AnalysisEngine = {
 
             const actionText = direction === 'LONG' ? '눌림목 매수 (Long Dip)' : direction === 'SHORT' ? '반등 매도 (Short Rip)' : '휴식 추천';
             explanation += `4. **행동 지침**: ${actionText}`;
-            if (isCapped) explanation += ` (⚠️ 리스크 제한: 최대 20%)\n\n`;
+            if (isCapped) explanation += ` (⚠️ 리스크 제한: 최대 ${SAFETY_CAP}%)\n\n`;
             else explanation += `\n\n`;
         }
 
@@ -1603,7 +1656,7 @@ export const AnalysisEngine = {
             explanation += `- "현재 ${direction === 'LONG' ? '매수세' : '매도세'}가 ${strength}% 로 우위입니다. 통계적 우위를 점유하세요."\n`;
         }
 
-        if (isCapped && !isCostRejected) explanation += `- **⚠️ 안전장치 발동**: 높은 확률일지라도 한 번에 파산하지 않기 위해 비중을 20%로 제한했습니다.\n`;
+        if (isCapped && !isCostRejected) explanation += `- **⚠️ 안전장치 발동**: 높은 확률일지라도 한 번에 파산하지 않기 위해 비중을 ${SAFETY_CAP}%로 제한했습니다.\n`;
 
         explanation += `\n--- \n\n`;
 
@@ -1754,6 +1807,10 @@ export const AnalysisEngine = {
             volumeProfileShape: extData?.volumeProfileShape,
             hasIntegerAlgoFootprint: extData?.hasIntegerAlgoFootprint,
 
+            // HP1 v113 The Maker's Gambit
+            isFirstTouchMitigated: extData?.isFirstTouchMitigated,
+            isTimeDecayTriggered: extData?.isTimeDecayTriggered,
+
             // HP1 v114 The Meta-Cognitive Predator
             metaLabelingFalsePositive: extData?.metaLabelingFalsePositive,
             fiveWhysDiagnostic: extData?.fiveWhysDiagnostic,
@@ -1787,8 +1844,16 @@ export const AnalysisEngine = {
             isCumDeltaDivergenceBlocked,
             isFootprintBailoutActive,
             isInverseMomentumBailoutActive,
-            mtfSqueezeSlOverride
-        } as any; // Cast as any because we are changing the return shape potentially, but let's keep it compatible if possible or update interface
+            mtfSqueezeSlOverride,
+
+            // HP1 v116-D 데이 모드 파이널 캡스톤: The Immortal Day-Trader
+            isVShapeRejectionPullback,
+            isStealthOrderConfirmed,
+            isFootprintReverseBailout,
+            isCircuitBreakerActive,
+            recentLossCount,
+            leverageMultiplier
+        } as any; 
     },
 
 
@@ -1801,12 +1866,23 @@ export const AnalysisEngine = {
         mode: 'BLUE' | 'RED' = 'BLUE'
     ): { margin: number; leverage: number; limitPrice: number; sl: number; tp1: number; tp2: number; tp3: number; tp: number; tp1Ratio: number; tp2Ratio: number; tp3Ratio: number; reason: string; isPyramidEligible?: boolean; isFrontRunOffsetApplied?: boolean } => {
 
-        if (signal.actionGrade === 'F' || signal.isLasso15mBlocked || signal.isCumDeltaDivergenceBlocked || signal.isFootprintBailoutActive || signal.isInverseMomentumBailoutActive) {
+        // v116-D 캡스톤: Circuit Breaker & Leverage Management
+        let leverageMultiplier = 1.0;
+        if (signal.isCircuitBreakerActive) {
+            return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: "🛡️ [Circuit Breaker] 3연패 셧다운 상태입니다. 12시간 쿨다운 후 진입하세요." };
+        }
+        if (signal.recentLossCount && signal.recentLossCount === 2) {
+            leverageMultiplier = 0.5;
+            signal.reasons.push("🛡️ [Risk Scale-down] 2연패 감지로 인해 심리 보호 차원에서 레버리지를 50% 하향 조정합니다.");
+        }
+
+        if (signal.actionGrade === 'F' || signal.isLasso15mBlocked || signal.isCumDeltaDivergenceBlocked || signal.isFootprintBailoutActive || signal.isInverseMomentumBailoutActive || signal.isFootprintReverseBailout) {
             let reason = "Signal Grade F. Do not trade.";
             if (signal.isLasso15mBlocked) reason = "🚨 [LASSO 15M Mismatch] 모델 예측과 진입 방향 이탈로 켈리 비중 0% (진입 차단).";
             else if (signal.isCumDeltaDivergenceBlocked) reason = "🚨 [Cum-Delta Filter] 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.";
             else if (signal.isFootprintBailoutActive) reason = "🚨 [Footprint Bailout] 델타와 캔들의 모순 트랩 감지! 시장가 강제 대피(Bailout).";
             else if (signal.isInverseMomentumBailoutActive) reason = "🚨 [Squeeze Bailout] 스퀴즈 돌파 직후 꺾이는 가짜 모멘텀 감지! 즉시 손절 탈출(Bailout).";
+            else if (signal.isFootprintReverseBailout) reason = "🚨 [Footprint Reversal Warning] 포지션 반대 방향 수급 역전 감지! 무조건 즉시 대피(Bailout).";
 
             return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason };
         }
@@ -1883,8 +1959,11 @@ export const AnalysisEngine = {
         let kellyOptimalRatioBusseti = (reward * winProb - risk * lossProb) / (reward * risk * lambda);
         kellyOptimalRatioBusseti = Math.max(0, Math.min(0.2, kellyOptimalRatioBusseti)); // Limit to 20% for safety
 
-        // Leverage based on confidence and Kelly
-        let leverage = isHighConviction ? 5 : (signal.actionGrade === 'A' ? 3 : 2); // Aggressive 5x for S-Grade
+        // [Phase 9] Final Precision Leverage 
+        let leverage = isHighConviction ? 10 : 5;
+        leverage = Math.floor(leverage * leverageMultiplier);
+        if (leverage < 1) leverage = 1;
+        // (signal.actionGrade === 'A' ? 3 : 2); // Aggressive 5x for S-Grade
 
         if (mode === 'RED') {
             leverage = 1; // Training wheels
