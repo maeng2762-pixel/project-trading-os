@@ -79,7 +79,7 @@ async function loop() {
             volume: c[5] as number
         }));
 
-        const currentCandleTime = ohlcv1h[ohlcv1h.length - 1][0];
+        const currentCandleTime = Number(ohlcv1h[ohlcv1h.length - 1][0]) || 0;
         const extData: any = {};
 
         console.log(`[LiveBot] Running Analysis Engine...`);

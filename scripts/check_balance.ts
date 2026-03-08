@@ -13,7 +13,8 @@ async function checkLiveBalance() {
         });
 
         const balance = await exchange.fetchBalance();
-        const usdt = balance.free?.USDT || 0;
+        const freeBalances = balance.free as any;
+        const usdt = freeBalances?.USDT || 0;
         console.log(`\n✅ [Live Connection] Success! Connected to Binance Futures.`);
         console.log(`💰 Available Real Margin (USDT): $${Number(usdt).toFixed(2)}`);
         
