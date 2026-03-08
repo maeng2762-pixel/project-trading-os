@@ -664,8 +664,8 @@ export const AnalysisEngine = {
         const timeframes = ['5m', '15m', '1h', '4h'];
         const details: any = {};
 
-        // Primary Timeframe for Signal (using 1h for now as main anchor)
-        const mainTF = '1h';
+        // Primary Timeframe for Signal (using 15m for sniper intraday action)
+        const mainTF = '15m';
         const mainCandles = candlesMap[mainTF];
 
         if (!mainCandles || mainCandles.length < 200) {

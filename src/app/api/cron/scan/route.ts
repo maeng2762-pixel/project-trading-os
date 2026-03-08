@@ -63,10 +63,11 @@ export async function GET(request: Request) {
         const SYMBOL = 'BTC/USDT';
         
         const limit = 300;
-        const [ohlcv1h, ohlcv4h, ohlcv1d, ohlcv5m] = await Promise.all([
+        const [ohlcv1h, ohlcv4h, ohlcv1d, ohlcv15m, ohlcv5m] = await Promise.all([
             exchange.fetchOHLCV(SYMBOL, '1h', undefined, limit),
             exchange.fetchOHLCV(SYMBOL, '4h', undefined, limit),
             exchange.fetchOHLCV(SYMBOL, '1d', undefined, limit),
+            exchange.fetchOHLCV(SYMBOL, '15m', undefined, limit),
             exchange.fetchOHLCV(SYMBOL, '5m', undefined, limit)
         ]);
 
@@ -83,6 +84,7 @@ export async function GET(request: Request) {
              '1h': mapCandles(ohlcv1h),
              '4h': mapCandles(ohlcv4h),
              '1d': mapCandles(ohlcv1d),
+             '15m': mapCandles(ohlcv15m),
              '5m': mapCandles(ohlcv5m)
         }, {});
         
