@@ -5,7 +5,7 @@ async function main() {
     console.log("=== Starting Kelly v6.0 Validation Protocol ===");
     try {
         const engine = new BacktestEngine();
-        await engine.run();
+        await engine.run(15);
     } catch (error) {
         console.error("Backtest Failed:", error);
     }

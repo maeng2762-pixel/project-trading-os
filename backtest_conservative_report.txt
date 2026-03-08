@@ -1,0 +1,270 @@
+
+======================================================
+[Backtest] 🚀 Starting 7-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 368 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 112 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 25 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 250 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-03-03T12:00:00.000Z
+[Trade] 2026-03-03T12:00:00.000Z ⚔️ Force Entry SHORT @ 67399.85 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-03-07T14:00:00.000Z
+[Risk] 🛡️ Risk Oracle blocked the entry: [BLUE] [🎯 S급 셋업: 확정 손익비 1:5 확장] [🕳️ Liquidity Vacuum 포착: TP3를 64615.9까지 연장(Stretch)] [🧠 Meta-Labeling: False Positive (가짜 신호) 감지. 비중 0% 강제 차단] 🔥 S급 공격 진입: Max Risk 0.00% ($0.0). SL 606.6 points away. Set Margin to $0 with 0x Lev.
+[Diagnostic] Candle 350 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-03-08T07:00:00.000Z
+[Trade] 2026-03-08T07:00:00.000Z ⚔️ Force Entry SHORT @ 67319.91 (Grade: S, Kelly: 20%)
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $99.55
+Total Trades Executed: 3
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  1
+Win Rate:              33.33%
+Net Profit:            $-0.45
+
+======================================================
+[Backtest] 🚀 Starting 15-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 560 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 160 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 33 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-22T14:00:00.000Z
+[Trade] 2026-02-22T14:00:00.000Z ⚔️ Force Entry LONG @ 67443.89 (Grade: S, Kelly: 20%)
+[Strategy] 🎯 Triggered S Setup at 2026-02-23T02:00:00.000Z
+[Trade] 2026-02-23T02:00:00.000Z ⚔️ Force Entry SHORT @ 64783.56 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 250 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-24T03:00:00.000Z
+[Trade] 2026-02-24T03:00:00.000Z ⚔️ Force Entry SHORT @ 63595.51 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-25T20:00:00.000Z
+[Trade] 2026-02-25T20:00:00.000Z ⚔️ Force Entry SHORT @ 69148.69 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 350 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 400 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Strategy] 🎯 Triggered S Setup at 2026-03-02T00:00:00.000Z
+[Trade] 2026-03-02T00:00:00.000Z ⚔️ Force Entry LONG @ 66501.52 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-03-06T07:00:00.000Z
+[Trade] 2026-03-06T07:00:00.000Z ⚔️ Force Entry SHORT @ 71056.44 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 550 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $101.06
+Total Trades Executed: 10
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  1
+Win Rate:              60.00%
+Net Profit:            $1.06
+
+======================================================
+[Backtest] 🚀 Starting 30-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 920 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 250 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 48 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 250 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 300 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 400 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-17T07:00:00.000Z
+[Trade] 2026-02-17T07:00:00.000Z ⚔️ Force Entry SHORT @ 68388.12 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-20T16:00:00.000Z
+[Trade] 2026-02-20T16:00:00.000Z ⚔️ Force Entry SHORT @ 67795.47 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 550 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 600 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-23T14:00:00.000Z
+[Trade] 2026-02-23T14:00:00.000Z ⚔️ Force Entry SHORT @ 65923.53 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 650 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 700 | Raw: F/NEUTRAL (⚠️ [경고: SQN 붕괴] SQN 1.32 < 1.6. 전략 불일치 위험으로 시그널 발송 일시 중단(Kill Switch).)
+[Strategy] 🎯 Triggered S Setup at 2026-02-27T13:00:00.000Z
+[Trade] 2026-02-27T13:00:00.000Z ⚔️ Force Entry SHORT @ 66270.55 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 750 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Strategy] 🎯 Triggered S Setup at 2026-03-02T04:00:00.000Z
+[Trade] 2026-03-02T04:00:00.000Z ⚔️ Force Entry LONG @ 66862.12 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 800 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 850 | Raw: F/NEUTRAL (⚠️ [경고: SQN 붕괴] SQN 1.21 < 1.6. 전략 불일치 위험으로 시그널 발송 일시 중단(Kill Switch).)
+[Strategy] 🎯 Triggered S Setup at 2026-03-07T11:00:00.000Z
+[Trade] 2026-03-07T11:00:00.000Z ⚔️ Force Entry SHORT @ 68010.01 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 900 | Raw: F/SHORT (Order Block Engulfing (장악형))
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $101.90
+Total Trades Executed: 10
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  1
+Win Rate:              70.00%
+Net Profit:            $1.90
+
+======================================================
+[Backtest] 🚀 Starting 50-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 1400 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 370 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 68 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 250 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 300 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 400 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-01-29T14:00:00.000Z
+[Trade] 2026-01-29T14:00:00.000Z ⚔️ Force Entry SHORT @ 87014.4 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 550 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 600 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 650 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 700 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 750 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-09T14:00:00.000Z
+[Trade] 2026-02-09T14:00:00.000Z ⚔️ Force Entry SHORT @ 69272 (Grade: S, Kelly: 20%)
+[Strategy] 🎯 Triggered S Setup at 2026-02-10T02:00:00.000Z
+[Trade] 2026-02-10T02:00:00.000Z ⚔️ Force Entry SHORT @ 70102.89 (Grade: S, Kelly: 20%)
+[Strategy] 🎯 Triggered S Setup at 2026-02-11T04:00:00.000Z
+[Trade] 2026-02-11T04:00:00.000Z ⚔️ Force Entry SHORT @ 67584.46 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 800 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 850 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 900 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 950 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1000 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-20T21:00:00.000Z
+[Trade] 2026-02-20T21:00:00.000Z ⚔️ Force Entry LONG @ 67825.87 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1050 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-23T03:00:00.000Z
+[Trade] 2026-02-23T03:00:00.000Z ⚔️ Force Entry SHORT @ 64934.17 (Grade: S, Kelly: 20%)
+[Strategy] 🎯 Triggered S Setup at 2026-02-23T10:00:00.000Z
+[Trade] 2026-02-23T10:00:00.000Z ⚔️ Force Entry SHORT @ 66319.69 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1100 | Raw: F/SHORT (Institutional Pinbar (유성형))
+[Strategy] 🎯 Triggered S Setup at 2026-02-25T16:00:00.000Z
+[Trade] 2026-02-25T16:00:00.000Z ⚔️ Force Entry SHORT @ 68297.35 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1150 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-27T16:00:00.000Z
+[Trade] 2026-02-27T16:00:00.000Z ⚔️ Force Entry SHORT @ 65475.21 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1200 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1250 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-03-06T14:00:00.000Z
+[Trade] 2026-03-06T14:00:00.000Z ⚔️ Force Entry SHORT @ 68409.89 (Grade: S, Kelly: 20%)
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $106.46
+Total Trades Executed: 19
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  1
+Win Rate:              68.42%
+Net Profit:            $6.46
+
+======================================================
+[Backtest] 🚀 Starting 100-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 2600 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 670 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 118 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Strategy] 🎯 Triggered S Setup at 2025-11-28T19:00:00.000Z
+[Trade] 2025-11-28T19:00:00.000Z ⚔️ Force Entry LONG @ 91157.44 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 250 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2025-12-03T21:00:00.000Z
+[Trade] 2025-12-03T21:00:00.000Z ⚔️ Force Entry SHORT @ 93700 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 400 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2025-12-08T07:00:00.000Z
+[Trade] 2025-12-08T07:00:00.000Z ⚔️ Force Entry SHORT @ 91565.46 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 500 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 550 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 600 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2025-12-15T14:00:00.000Z
+[Trade] 2025-12-15T14:00:00.000Z ⚔️ Force Entry LONG @ 88050.01 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 650 | Raw: F/SHORT (Institutional Pinbar (망치형))
+[Strategy] 🎯 Triggered S Setup at 2025-12-18T07:00:00.000Z
+[Trade] 2025-12-18T07:00:00.000Z ⚔️ Force Entry SHORT @ 86833.84 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 700 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2025-12-20T14:00:00.000Z
+[Trade] 2025-12-20T14:00:00.000Z ⚔️ Force Entry SHORT @ 88260.88 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 750 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 800 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 850 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2025-12-26T19:00:00.000Z
+[Trade] 2025-12-26T19:00:00.000Z ⚔️ Force Entry SHORT @ 87501.83 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 900 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 950 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1000 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 1050 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1100 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Strategy] 🎯 Triggered S Setup at 2026-01-06T04:00:00.000Z
+[Trade] 2026-01-06T04:00:00.000Z ⚔️ Force Entry SHORT @ 93801.07 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1150 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1200 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1250 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [LOW_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-01-12T04:00:00.000Z
+[Trade] 2026-01-12T04:00:00.000Z ⚔️ Force Entry LONG @ 92175.78 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-01-13T19:00:00.000Z
+[Trade] 2026-01-13T19:00:00.000Z ⚔️ Force Entry SHORT @ 94226.84 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1400 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Strategy] 🎯 Triggered S Setup at 2026-01-19T09:00:00.000Z
+[Trade] 2026-01-19T09:00:00.000Z ⚔️ Force Entry SHORT @ 93060.06 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1550 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1600 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-01-27T04:00:00.000Z
+[Trade] 2026-01-27T04:00:00.000Z ⚔️ Force Entry LONG @ 88579.58 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1650 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-01-28T22:00:00.000Z
+[Trade] 2026-01-28T22:00:00.000Z ⚔️ Force Entry SHORT @ 89396.15 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1700 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1750 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 1800 | Raw: F/NEUTRAL (⚠️ [경고: SQN 붕괴] SQN 1.54 < 1.6. 전략 불일치 위험으로 시그널 발송 일시 중단(Kill Switch).)
+[Diagnostic] Candle 1850 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-05T07:00:00.000Z
+[Trade] 2026-02-05T07:00:00.000Z ⚔️ Force Entry SHORT @ 70756.85 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1900 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-09T06:00:00.000Z
+[Trade] 2026-02-09T06:00:00.000Z ⚔️ Force Entry LONG @ 70667.95 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 1950 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2000 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Diagnostic] Candle 2050 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Strategy] 🎯 Triggered S Setup at 2026-02-15T13:00:00.000Z
+[Trade] 2026-02-15T13:00:00.000Z ⚔️ Force Entry SHORT @ 68930 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 2100 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2150 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Strategy] 🎯 Triggered S Setup at 2026-02-18T05:00:00.000Z
+[Trade] 2026-02-18T05:00:00.000Z ⚔️ Force Entry SHORT @ 67654.8 (Grade: S, Kelly: 20%)
+[Strategy] 🎯 Triggered S Setup at 2026-02-19T08:00:00.000Z
+[Trade] 2026-02-19T08:00:00.000Z ⚔️ Force Entry SHORT @ 66966.12 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 2200 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-02-20T21:00:00.000Z
+[Trade] 2026-02-20T21:00:00.000Z ⚔️ Force Entry SHORT @ 67825.87 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 2250 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2350 | Raw: F/SHORT (Institutional Pinbar (유성형))
+[Strategy] 🎯 Triggered S Setup at 2026-02-27T22:00:00.000Z
+[Trade] 2026-02-27T22:00:00.000Z ⚔️ Force Entry SHORT @ 65637.99 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 2400 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2450 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Strategy] 🎯 Triggered S Setup at 2026-03-03T22:00:00.000Z
+[Trade] 2026-03-03T22:00:00.000Z ⚔️ Force Entry SHORT @ 68327.2 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 2500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-03-04T22:00:00.000Z
+[Trade] 2026-03-04T22:00:00.000Z ⚔️ Force Entry SHORT @ 72705.86 (Grade: S, Kelly: 20%)
+[Diagnostic] Candle 2550 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered S Setup at 2026-03-07T16:00:00.000Z
+[Trade] 2026-03-07T16:00:00.000Z ⚔️ Force Entry LONG @ 67783.63 (Grade: S, Kelly: 20%)
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $97.93
+Total Trades Executed: 38
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  1
+Win Rate:              55.26%
+Net Profit:            $-2.07

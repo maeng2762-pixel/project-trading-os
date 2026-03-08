@@ -15,8 +15,9 @@ if (!admin.apps.length) {
             credential: admin.credential.applicationDefault(), // Fallback for local/GCP environments
         });
     }
+    // Only call settings once at initialization
+    admin.firestore().settings({ ignoreUndefinedProperties: true });
 }
 
 export const adminDb = admin.firestore();
-adminDb.settings({ ignoreUndefinedProperties: true });
 export const adminAuth = admin.auth();

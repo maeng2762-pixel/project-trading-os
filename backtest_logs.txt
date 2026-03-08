@@ -1,0 +1,45 @@
+[Backtest] 🚀 Starting Simulation via HP1 v114 Engine (The Meta-Cognitive Predator)...
+[Backtest] ⏳ Fetching 1000 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 270 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 51 candles for BTC/USDT (1d)...
+[Strategy] 🎯 Triggered A Setup at 2026-02-07T09:00:00.000Z
+[Risk] 🛡️ Risk Oracle blocked the entry: 🚨 [Cum-Delta Filter] 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.
+[Strategy] 🎯 Triggered S Setup at 2026-02-07T12:00:00.000Z
+[Risk] 🛡️ Risk Oracle blocked the entry: 🚨 [Cum-Delta Filter] 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.
+[Strategy] 🎯 Triggered S Setup at 2026-02-08T14:00:00.000Z
+[Trade] 2026-02-08T14:00:00.000Z ⚔️ Force Entry LONG @ 71262.19 (Grade: S, Kelly: 20%)
+[Strategy] 🎯 Triggered A Setup at 2026-02-12T09:00:00.000Z
+[Trade] 2026-02-12T09:00:00.000Z ⚔️ Force Entry SHORT @ 67550.47 (Grade: A, Kelly: 10%)
+[Strategy] 🎯 Triggered S Setup at 2026-02-13T16:00:00.000Z
+[Trade] 2026-02-13T16:00:00.000Z ⚔️ Force Entry LONG @ 68954.69 (Grade: S, Kelly: 20%)
+[Strategy] 🎯 Triggered A Setup at 2026-02-16T21:00:00.000Z
+[Trade] 2026-02-16T21:00:00.000Z ⚔️ Force Entry SHORT @ 68862.88 (Grade: A, Kelly: 10%)
+[Strategy] 🎯 Triggered A Setup at 2026-02-23T05:00:00.000Z
+[Trade] 2026-02-23T05:00:00.000Z ⚔️ Force Entry LONG @ 65070.9 (Grade: A, Kelly: 10%)
+[Strategy] 🎯 Triggered A Setup at 2026-02-25T01:00:00.000Z
+[Trade] 2026-02-25T01:00:00.000Z ⚔️ Force Entry SHORT @ 65896.75 (Grade: A, Kelly: 10%)
+[Strategy] 🎯 Triggered A Setup at 2026-02-27T00:00:00.000Z
+[Risk] 🛡️ Risk Oracle blocked the entry: 🚨 [Cum-Delta Filter] 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.
+[Strategy] 🎯 Triggered A Setup at 2026-02-27T12:00:00.000Z
+[Risk] 🛡️ Risk Oracle blocked the entry: 🚨 [Cum-Delta Filter] 세력 개입(Divergence)이 확인되지 않아 단기 타점 강제 차단.
+[Strategy] 🎯 Triggered A Setup at 2026-02-28T13:00:00.000Z
+[Trade] 2026-02-28T13:00:00.000Z ⚔️ Force Entry SHORT @ 65106.44 (Grade: A, Kelly: 10%)
+[Strategy] 🎯 Triggered A Setup at 2026-02-28T23:00:00.000Z
+[Trade] 2026-02-28T23:00:00.000Z ⚔️ Force Entry SHORT @ 66973.26 (Grade: A, Kelly: 10%)
+[Strategy] 🎯 Triggered A Setup at 2026-03-02T11:00:00.000Z
+[Trade] 2026-03-02T11:00:00.000Z ⚔️ Force Entry SHORT @ 66359.68 (Grade: A, Kelly: 10%)
+[Strategy] 🎯 Triggered SSS Setup at 2026-03-05T09:00:00.000Z
+[Trade] 2026-03-05T09:00:00.000Z ⚔️ Force Entry LONG @ 72591.59 (Grade: SSS, Kelly: 30%)
+[Strategy] 🎯 Triggered A Setup at 2026-03-05T21:00:00.000Z
+[Trade] 2026-03-05T21:00:00.000Z ⚔️ Force Entry SHORT @ 71141.93 (Grade: A, Kelly: 10%)
+[Strategy] 🎯 Triggered A Setup at 2026-03-08T00:00:00.000Z
+[Trade] 2026-03-08T00:00:00.000Z ⚔️ Force Entry LONG @ 67194.77 (Grade: A, Kelly: 10%)
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $10000
+Final Balance:   $9926.40
+Total Trades Executed: 19
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  4
+Win Rate:              52.63%
+Net Profit:            $-73.60

@@ -1,0 +1,182 @@
+
+======================================================
+[Backtest] 🚀 Starting 7-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 368 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 112 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 25 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 250 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 300 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 350 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $100.00
+Total Trades Executed: 0
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  0
+Win Rate:              0.00%
+Net Profit:            $0.00
+
+======================================================
+[Backtest] 🚀 Starting 15-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 560 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 160 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 33 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 250 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 400 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 500 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 550 | Raw: F/SHORT (Order Block Engulfing (장악형))
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $100.00
+Total Trades Executed: 0
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  0
+Win Rate:              0.00%
+Net Profit:            $0.00
+
+======================================================
+[Backtest] 🚀 Starting 30-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 920 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 250 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 48 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 250 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 300 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 400 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 550 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 600 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 650 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 700 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 750 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 800 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 850 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 900 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $100.00
+Total Trades Executed: 0
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  0
+Win Rate:              0.00%
+Net Profit:            $0.00
+
+======================================================
+[Backtest] 🚀 Starting 50-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 1400 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 370 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 68 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Diagnostic] Candle 250 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 400 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 550 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 600 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 650 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 700 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 750 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 800 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 850 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 900 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 950 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 1000 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1050 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1100 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1150 | Raw: F/SHORT (Institutional Pinbar (유성형))
+[Diagnostic] Candle 1200 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1250 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 1300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered SSS Setup at 2026-03-05T06:00:00.000Z
+[Trade] 2026-03-05T06:00:00.000Z ⚔️ Force Entry LONG @ 72553.62 (Grade: SSS, Kelly: 30%)
+[Diagnostic] Candle 1350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $97.83
+Total Trades Executed: 1
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  0
+Win Rate:              0.00%
+Net Profit:            $-2.17
+
+======================================================
+[Backtest] 🚀 Starting 100-Day Simulation via RED POTION (Seed: $100)
+[Backtest] ⏳ Fetching 2600 candles for BTC/USDT (1h)...
+[Backtest] ⏳ Fetching 670 candles for BTC/USDT (4h)...
+[Backtest] ⏳ Fetching 118 candles for BTC/USDT (1d)...
+[Diagnostic] Candle 200 | Raw: F/NEUTRAL (⚠️ [경고: SQN 붕괴] SQN 1.19 < 1.6. 전략 불일치 위험으로 시그널 발송 일시 중단(Kill Switch).)
+[Diagnostic] Candle 250 | Raw: F/NEUTRAL (⚠️ [경고: SQN 붕괴] SQN 1.50 < 1.6. 전략 불일치 위험으로 시그널 발송 일시 중단(Kill Switch).)
+[Diagnostic] Candle 300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 400 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered SSS Setup at 2025-12-06T20:00:00.000Z
+[Trade] 2025-12-06T20:00:00.000Z ⚔️ Force Entry SHORT @ 89548.88 (Grade: SSS, Kelly: 30%)
+[Diagnostic] Candle 450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 500 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 550 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 600 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 650 | Raw: F/LONG (Institutional Pinbar (망치형))
+[Diagnostic] Candle 700 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered SSS Setup at 2025-12-21T01:00:00.000Z
+[Trade] 2025-12-21T01:00:00.000Z ⚔️ Force Entry SHORT @ 88011.83 (Grade: SSS, Kelly: 30%)
+[Diagnostic] Candle 750 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 800 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 850 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 900 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 950 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1000 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 1050 | Raw: F/LONG (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1100 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1150 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Strategy] 🎯 Triggered SSS Setup at 2026-01-08T17:00:00.000Z
+[Trade] 2026-01-08T17:00:00.000Z ⚔️ Force Entry LONG @ 91366.39 (Grade: SSS, Kelly: 30%)
+[Diagnostic] Candle 1200 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1250 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [LOW_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1350 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1400 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Diagnostic] Candle 1450 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1550 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1600 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1650 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1700 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1750 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 1800 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1850 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1900 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 1950 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2000 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Diagnostic] Candle 2050 | Raw: F/SHORT (Order Block Engulfing (장악형))
+[Diagnostic] Candle 2100 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2150 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 2200 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2250 | Raw: F/SHORT (💡 [Market Regime AI] 현재 시장 상태: [RANGE] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2300 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2350 | Raw: F/SHORT (Institutional Pinbar (유성형))
+[Diagnostic] Candle 2400 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2450 | Raw: F/SHORT (Order Block Engulfing (하락 장악형))
+[Diagnostic] Candle 2500 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+[Diagnostic] Candle 2550 | Raw: F/LONG (💡 [Market Regime AI] 현재 시장 상태: [HIGH_VOL] -> 기반 전략 자동 변경)
+
+=== 📊 Evaluation Report (HP1 v6.0) ===
+Initial Balance: $100
+Final Balance:   $97.17
+Total Trades Executed: 4
+Blocked (Filter Grade): 0
+Blocked (Risk Oracle):  0
+Win Rate:              25.00%
+Net Profit:            $-2.83

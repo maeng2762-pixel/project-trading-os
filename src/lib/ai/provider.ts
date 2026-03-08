@@ -166,6 +166,10 @@ export interface MasterSignal {
 
     // --- HP1 v100.0 The Predator (Anti-AI 제로데이 패치) ---
     predatorStopHuntDetected?: boolean;            // Module 1: Anti-AI Liquidity Grab detection
+
+    // --- [S급 특수 모듈] The Confluence Compressor ---
+    isCompressZone?: boolean;                      // S급 컴프레스 존 여부
+    compressZoneDetails?: string;                  // 컴프레스 존 상세 설명 (HVN/Liq/SMC 등 중첩 정보)
 }
 
 
@@ -631,6 +635,10 @@ export class MockBroadcastProvider implements AIProvider {
 
             // v100.0 The Predator (Anti-AI 제로데이 패치)
             predatorStopHuntDetected: Math.random() > 0.92,
+
+            // [S급 특수 모듈] The Confluence Compressor (컴프레스 존)
+            isCompressZone: weightedScore > 75 && Math.random() > 0.4,
+            compressZoneDetails: weightedScore > 75 ? `S성급 컴프레스 존 확인 완료 (HVN/Liq/SMC/Round 중첩). 에너지 응축 후 폭발 예상.` : undefined,
         };
     }
 }

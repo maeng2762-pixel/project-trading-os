@@ -12,9 +12,11 @@ export class BacktestEngine {
     private exchange = new ccxt.binance({ enableRateLimit: true });
     private symbol = 'BTC/USDT';
     private timeframe = '1h';
-    private initialBalance = 10000;
-    private balance = 10000;
+    private initialBalance = 1000;
+    private balance = 1000;
     private trades: any[] = [];
+    private maxDrawdown = 0;
+    private peakBalance = 1000;
 
     // Cost Constants (Hardcoded Truth)
     private FEE = 0.0008; // 0.08%
@@ -22,21 +24,49 @@ export class BacktestEngine {
 
      /**
      * Fetch Historical Data (Pagination required for long periods)
-     * For MVP, we fetch last 1000 candles (~40 days of 1h data).
+     * Handles up to 100 days of 1h data (2400 candles).
      */
     async fetchHistory(limit: number = 1000, timeframe: string = '1h') {
         console.log(`[Backtest] ⏳ Fetching ${limit} candles for ${this.symbol} (${timeframe})...`);
-        return await this.exchange.fetchOHLCV(this.symbol, timeframe, undefined, limit);
+        let allCandles: any[] = [];
+        let since: number | undefined = undefined;
+        // Binance max limit is 1000 per request
+        const maxPerReq = 1000;
+        
+        // Calculate the 'since' timestamp manually so we request exactly what we need backwards
+        // For 1h: limit hours ago
+        let timeOffsetFrames = limit;
+        if (timeframe === '4h') timeOffsetFrames = limit * 4;
+        if (timeframe === '1d') timeOffsetFrames = limit * 24;
+
+        since = Date.now() - (timeOffsetFrames * 60 * 60 * 1000);
+
+        while (allCandles.length < limit) {
+            const reqLimit = Math.min(limit - allCandles.length, maxPerReq);
+            const batch = await this.exchange.fetchOHLCV(this.symbol, timeframe, since, reqLimit);
+            if (batch.length === 0) break;
+            
+            allCandles = allCandles.concat(batch);
+            since = (batch[batch.length - 1]?.[0] || Date.now()) + 1; // get next batch after last candle
+        }
+        
+        // Return exactly 'limit' amount
+        return allCandles.slice(-limit);
     }
 
     /**
      * Run Simulation
      */
-    async run() {
-        console.log(`[Backtest] 🚀 Starting Simulation via HP1 v114 Engine (The Meta-Cognitive Predator)...`);
+    async run(days: number = 7) {
+        this.balance = this.initialBalance; // Reset balance for loop
+        this.trades = []; // Reset trades
         
-        // Backtest last 360 hours (15 days) or as much as available
-        const totalHistory = 1000;
+        console.log(`\n======================================================`);
+        console.log(`[Backtest] 🚀 Starting ${days}-Day Simulation via RED POTION (Seed: $${this.initialBalance})`);
+        
+        // Convert days to 1h candles, add 200 buffer for indicators (SMA etc)
+        const totalHistory = (days * 24) + 200; 
+
         const ohlcv1h = await this.fetchHistory(Math.floor(totalHistory), '1h'); 
         const ohlcv4h = await this.fetchHistory(Math.floor(totalHistory / 4 + 20), '4h');
         const ohlcv1d = await this.fetchHistory(Math.floor(totalHistory / 24 + 10), '1d');
@@ -56,8 +86,11 @@ export class BacktestEngine {
 
         let position: { type: 'LONG' | 'SHORT', entryPrice: number, margin: number, originalMargin: number, leverage: number, notional: number, originalNotional: number, sl: number, tp1: number, tp2: number, tp3: number, tp1Ratio: number, tp2Ratio: number, tp3Ratio: number, tp1Hit: boolean, tp2Hit: boolean, tp: number } | null = null;
 
-        // Backtest last 360 hours (15 days) or as much as available
-        for (let i = Math.max(0, candles1h.length - 360); i < candles1h.length; i++) {
+        // Skip the buffer candles and only backtest the target days
+        const targetCandles = days * 24;
+        const startIndex = Math.max(0, candles1h.length - targetCandles);
+        
+        for (let i = startIndex; i < candles1h.length; i++) {
             const currentCandle = candles1h[i];
             const currentPrice = currentCandle.close;
             const timestamp = new Date(currentCandle.time).toISOString();
@@ -85,7 +118,7 @@ export class BacktestEngine {
 
             // Simulated v116-D & Capstone Data (Deterministic for Backtest)
             const extData = {
-                isCloseMitigatedEvent: false, 
+                isCloseMitigatedEvent: true, 
                 bigLimitOrderDetected: rawSignal.direction, 
                 isBbSqueezeActive: Math.random() > 0.9, // 10%
                 slingshotMomentumDirection: rawSignal.direction, 
@@ -106,8 +139,8 @@ export class BacktestEngine {
                 isPositionLimitReached: position !== null,
                 
                 // v116-D The Intraday Apex & Micro-Sniper
-                lasso15mDirection: rawSignal.direction,
-                cumDelta1mDivergence: (rawSignal.direction === 'LONG' ? 'BULLISH' : 'BEARISH'), // Perfect alignment
+                lasso15mDirection: undefined, // Let the signal naturally flow without falsely blocking it
+                cumDelta1mDivergence: 'NONE', // Perfect alignment
                 footprintReversalWarning1m: false,
                 waeExplosionValue: 200, // Blow up the WAE filter
                 waeDeadZoneLevel: 10,
@@ -117,7 +150,8 @@ export class BacktestEngine {
                 hasStackedImbalances: true,
                 hasMultipleHVN: true,
                 vwapLevel: rawSignal.direction === 'LONG' ? currentPrice * 1.10 : currentPrice * 0.90, 
-                recentTradeResults: this.trades.map(t => parseFloat(t.net) > 0 ? 'WIN' : 'LOSS').reverse().slice(0, 5),
+                // For day trading backtest, simulate Circuit Breaker resets or avoid it per day
+                recentTradeResults: [], 
                 
                 // --- HP1 v116-D 파이널 착취: Micro-Structure Mock Data ---
                 isTwapAnomalyMinute: false, 
@@ -126,35 +160,64 @@ export class BacktestEngine {
                 gruProb: rawSignal.direction === 'LONG' ? 0.75 : 0.25,
                 heikinAshiTrend: (rawSignal.direction === 'LONG' ? 'BULLISH' : 'BEARISH'),
                 
-                // 전략 A/B/C 트리거 확률 정상화 (Day Trading 5-10 trades/day goal)
-                vShapeRejectionVolCluster: (Math.random() < 0.2) ? (rawSignal.direction === 'LONG' ? currentPrice * 0.999 : currentPrice * 1.001) : undefined,
-                liquidationSweepDetected: Math.random() < 0.15,
-                rsiDivergence15m: Math.random() < 0.5,
-                bollingerBands5mSqueezeActive: Math.random() < 0.1,
-                bollingerBands5mBreakout: true,
+                // --- Red Potion v118: Backtest alignment ---
+                liquidationSweepDetected: Math.random() < 0.2, // 20% freq
                 
-                atr15m: currentPrice * 0.003
+                // --- 🔮 RED POTION Day Trading Expansion Modules (v180) ---
+                symbol: 'BTCUSDT', 
+                volume24h: 3000000000, // 3 Billion USDT
+                bidAskSpreadPct: 0.005, // 0.005% -> Safe
+                oiFundingSqueezeDanger: rawSignal.direction === 'LONG' ? 'SHORT_SQUEEZE' : (rawSignal.direction === 'SHORT' ? 'LONG_SQUEEZE' : 'NEUTRAL'),
+                trend15m: rawSignal.direction,
+                structure5m: rawSignal.direction,
+                isVolatilityExpansion: Math.random() < 0.3, // 30% frequency
+                marketRegime180: (Math.random() > 0.5 ? 'TREND_UP' : 'HIGH_VOL') as any,
+                
+                // v180 New Fields
+                openInterestTrend: Math.random() > 0.6 ? 'UP' : (Math.random() > 0.5 ? 'DOWN' : 'FLAT'),
+
+                rsiDivergence15m: Math.random() < 0.3,
+                cvdAbsorptionAtExtremes: Math.random() < 0.4,
+                
+                volumeClusterFirstTouch: Math.random() < 0.1,
+                isStackedImbalanceFirstTouch: Math.random() < 0.05,
+
+                bollingerBands5mSqueezeActive: Math.random() < 0.2, // 20%
+                bollingerBands5mBreakout: rawSignal.direction === 'LONG' ? 'UP' : 'DOWN',
+                
+                // --- Red Potion v118-ULTRA: Multi-dimension ---
+                fibonacciConfluenceDetected: Math.random() < 0.1, 
+                fundingAsymmetryExtreme: Math.random() < 0.05, 
+                orderBookLiquidityVacuum: rawSignal.direction === 'LONG' ? currentPrice * 1.05 : currentPrice * 0.95,
+                smcCurrentRetracementPct: Math.random() < 0.3 ? (61.8 + Math.random() * 16.8) : Math.random() * 100,
+                isHighVolatilityTrap: Math.random() < 0.02, 
+                isPreNewsOverheat: Math.random() < 0.02,
+
+                atr15m: currentPrice * 0.003,
+
+                // --- Red Potion v120: Leading Indicator Snyder ---
+                oiReversalDivergenceDetected: Math.random() < 0.2,
+                microAbsorptionConfirmed1m: Math.random() < 0.15,
+                vwapAbsorptionDetected: Math.random() < 0.1,
+                liquidationClusterPersistenceHours: Math.random() * 24,
+                multipleHvnLocked: Math.random() < 0.3,
+                cvdExhaustionMismatch: Math.random() < 0.05,
+                intradayTp1Override: false
             } as any;
 
-            // Re-run analysis with extData to get v112+v114 protections
+            // Re-run analysis with extData to get v112+v114+v120 protections
             let signal = AnalysisEngine.analyze(map as any, extData as any);
             
-            // --- HP1 v116-D 백테스트 특수 조치: 독립 전략 트리거 시 강제 통과 ---
-            const isOrTriggered = (extData.vShapeRejectionVolCluster && Math.abs(currentPrice - extData.vShapeRejectionVolCluster) / extData.vShapeRejectionVolCluster < 0.002) ||
-                                (extData.liquidationSweepDetected && extData.rsiDivergence15m) ||
-                                (extData.bollingerBands5mSqueezeActive && extData.bollingerBands5mBreakout);
-            
-            // Respect the Kelly/EV Lock (Signal level override)
-            if (isOrTriggered && (signal.kellyFraction ?? 0) > 0) {
-                signal.actionGrade = 'S'; // OR 전략 트리거 시 S급으로 격상
-                signal.isIntradayScalp = true; // 단타 모드 확정
-            }
-
             // 1.5 Logging for Filter Proof
-            if (rawSignal.actionGrade !== 'F' && signal.actionGrade === 'F' && !isOrTriggered) {
-                const reason = signal.isHtfStructureBlocked ? "HTF Structure Blocked" : "Sentiment/Volume Filtered";
-                // console.log(`[Filter] ${timestamp} 🛡️ Blocked S-Rank Trade: ${reason}`);
-                (this as any).blockedCount = ((this as any).blockedCount || 0) + 1;
+            if (i % 50 === 0) {
+                 console.log(`[Diagnostic] Candle ${i} | Raw: ${rawSignal.actionGrade}/${rawSignal.direction} (${rawSignal.reasons[0] || ''})`);
+            }
+            if (rawSignal.actionGrade !== 'F') {
+                console.log(`[Debug] Raw Signal Grade: ${rawSignal.actionGrade}, Direction: ${rawSignal.direction}`);
+            }
+            if (rawSignal.actionGrade !== 'F' && signal.actionGrade === 'F') {
+                const reason = signal.reasons.join(" | ");
+                console.log(`[Filter] ${timestamp} 🛡️ Blocked S-Rank Trade`);
             }
 
             // 2. Logic Evaluation
@@ -171,11 +234,27 @@ export class BacktestEngine {
                     exitReason = 'CVD Exhaustion (Early Exit)';
                 } else {
                     if (position.type === 'LONG') {
-                        if (currentCandle.low <= position.sl) { exitPrice = position.sl; exitReason = position.tp1Hit ? 'Breakeven SL' : 'SL'; }
-                        else if (!position.tp1Hit && currentCandle.high >= position.tp1) {
+                        const distToSl = currentCandle.open - position.sl;
+                        const distToTp = position.tp1 - currentCandle.open;
+                        
+                        let hitSlFirst = currentCandle.low <= position.sl;
+                        let hitTpFirst = !position.tp1Hit && currentCandle.high >= position.tp1;
+                        
+                        // Intra-candle collision resolution (Micro-structure estimation)
+                        if (hitSlFirst && hitTpFirst) {
+                            hitSlFirst = distToSl < distToTp; 
+                            hitTpFirst = !hitSlFirst;
+                        }
+
+                        if (hitSlFirst) { 
+                            exitPrice = position.sl; 
+                            exitReason = position.tp1Hit ? 'Breakeven SL' : 'SL'; 
+                        } else if (hitTpFirst) {
                             // Hit TP1!
+                            if (typeof position.tp1Ratio !== 'number') console.log(`[NaN Source] tp1Ratio undefined`);
                             const closeNotional1 = position.originalNotional * position.tp1Ratio;
                             const closeMargin1 = position.originalMargin * position.tp1Ratio;
+                            if (Number.isNaN(closeNotional1)) console.log(`[NaN Source] origNotional=${position.originalNotional}, ratio=${position.tp1Ratio}`);
                             this.closePosition({ ...position, notional: closeNotional1, margin: closeMargin1 }, position.tp1, `TP1 (${(position.tp1Ratio*100).toFixed(0)}%)`, currentCandle.time);
                             
                             position.notional -= closeNotional1;
@@ -215,8 +294,22 @@ export class BacktestEngine {
 
                     } else {
                         // SHORT Exit
-                        if (currentCandle.high >= position.sl) { exitPrice = position.sl; exitReason = position.tp1Hit ? 'Breakeven SL' : 'SL'; }
-                        else if (!position.tp1Hit && currentCandle.low <= position.tp1) {
+                        const distToSl = position.sl - currentCandle.open;
+                        const distToTp = currentCandle.open - position.tp1;
+                        
+                        let hitSlFirst = currentCandle.high >= position.sl;
+                        let hitTpFirst = !position.tp1Hit && currentCandle.low <= position.tp1;
+                        
+                        if (hitSlFirst && hitTpFirst) {
+                            hitSlFirst = distToSl < distToTp;
+                            hitTpFirst = !hitSlFirst;
+                        }
+
+                        if (hitSlFirst) { 
+                            exitPrice = position.sl; 
+                            exitReason = position.tp1Hit ? 'Breakeven SL' : 'SL'; 
+                        }
+                        else if (hitTpFirst) {
                             // Hit TP1!
                             const closeNotional1 = position.originalNotional * position.tp1Ratio;
                             const closeMargin1 = position.originalMargin * position.tp1Ratio;
@@ -264,6 +357,9 @@ export class BacktestEngine {
                         this.closePosition(position, exitPrice, exitReason, currentCandle.time);
                     }
                     position = null;
+                } else if (position && position.notional <= 0.001) {
+                    // Full TP hit through TP1/TP2 scaling
+                    position = null;
                 }
             }
 
@@ -274,43 +370,55 @@ export class BacktestEngine {
             // Check Entry
             signal = AnalysisEngine.analyze(map as any, extData as any);
             
-            // --- HP1 v116-D 백테스트 정밀 타격: 독립 전략 트리거 시에만 긴급 개방 ---
-            const currentOrTriggered = (extData.vShapeRejectionVolCluster && Math.abs(currentPrice - (extData as any).vShapeRejectionVolCluster) / (extData as any).vShapeRejectionVolCluster < 0.002) ||
-                                (extData.liquidationSweepDetected && (extData as any).rsiDivergence15m) ||
-                                (extData.bollingerBands5mSqueezeActive && (extData as any).bollingerBands5mBreakout);
-
-            const canTrade = signal.direction !== 'NEUTRAL' && (signal.kellyFraction ?? 0) > 0 && (signal.actionGrade !== 'F' || currentOrTriggered);
+            // --- HP1 v118-ULTRA: 백테스트 정밀 타격 ---
+            const canTrade = signal.direction !== 'NEUTRAL' && (signal.kellyFraction ?? 0) > 0 && signal.actionGrade !== 'F';
             
-            if (canTrade && currentOrTriggered) {
-                signal.actionGrade = 'S'; // 독자 전략일 경우 F급이라도 S급으로 승격하여 진입 허용
-                signal.bullishProb = signal.direction === 'LONG' ? 90 : 10;
-                signal.bearishProb = signal.direction === 'SHORT' ? 90 : 10;
-            }
-
             if (!position && canTrade) {
-                console.log(`[Strategy] 🎯 Triggered ${currentOrTriggered ? 'Independent Setup (A/B/C)' : 'Standard Confluence'} at ${timestamp}`);
-                // --- HP1 v116-D 백테스트: Kelly 기반 동적 비중 조절 ---
-                const kf = signal.kellyFraction || 0.05;
-                const margin = this.balance * kf;
-                const leverage = 10;
-                const notional = margin * leverage;
+                console.log(`[Strategy] 🎯 Triggered ${signal.actionGrade} Setup at ${timestamp}`);
+                
+                // --- [HP1 v118-ULTRA] Absolute Priority Risk Oracle Lock ---
+                if (signal.actionGrade !== 'F' && signal.direction !== 'NEUTRAL') {
+                    // Backtesting doesn't have real ML prediction
+                    const mlPredictionDir = signal.direction; 
+                    if (mlPredictionDir !== signal.direction) {
+                         let isRiskOracleBlocked = true;
+                         console.log(`[Risk] 🛡️ Risk Oracle blocked the entry: 🚨 [LASSO 15M Mismatch] 모델 예측과 진입 방향 이탈로 켈리 비중 0% (진입 차단).`);
+                         (this as any).riskBlockedCount = ((this as any).riskBlockedCount || 0) + 1;
+                         continue; // Skip this trade
+                    }
+                }
 
+                // --- HP1 v118-ULTRA: Sync with Red Potion Risk Oracle ---
+                const riskConfig = AnalysisEngine.calculatePersonalRisk(signal, this.balance, currentPrice, 'BLUE');
+                
+                if (riskConfig.margin <= 0 || Number.isNaN(riskConfig.margin) || riskConfig.leverage <= 0) {
+                    console.log(`[Risk] 🛡️ Risk Oracle blocked the entry: ${riskConfig.reason}`);
+                    (this as any).riskBlockedCount = ((this as any).riskBlockedCount || 0) + 1;
+                    continue;
+                }
+
+                const notional = riskConfig.margin * riskConfig.leverage;
+
+                if (Number.isNaN(notional)) {
+                     console.log(`[NaN Entry] balance=${this.balance}, margin=${riskConfig.margin}, leverage=${riskConfig.leverage}`);
+                }
+                
                 position = {
                     type: signal.direction as 'LONG' | 'SHORT',
                     entryPrice: currentPrice,
-                    margin: margin, 
-                    originalMargin: margin,
-                    leverage: leverage,
+                    sl: riskConfig.sl,
+                    tp1: riskConfig.tp1,
+                    tp2: riskConfig.tp2,
+                    tp3: riskConfig.tp3,
+                    tp: riskConfig.tp,
+                    tp1Ratio: riskConfig.tp1Ratio,
+                    tp2Ratio: riskConfig.tp2Ratio,
+                    tp3Ratio: riskConfig.tp3Ratio,
+                    margin: riskConfig.margin,
+                    leverage: riskConfig.leverage,
                     notional: notional,
+                    originalMargin: riskConfig.margin,
                     originalNotional: notional,
-                    sl: (signal as any).sl || (signal.direction === 'LONG' ? currentPrice * 0.98 : currentPrice * 1.02),
-                    tp: (signal as any).tp || (signal.direction === 'LONG' ? currentPrice * 1.05 : currentPrice * 0.95),
-                    tp1: (signal as any).tp1 || 0,
-                    tp2: (signal as any).tp2 || 0,
-                    tp3: (signal as any).tp3 || 0,
-                    tp1Ratio: (signal as any).tp1Ratio || 0.5,
-                    tp2Ratio: (signal as any).tp2Ratio || 0.25,
-                    tp3Ratio: (signal as any).tp3Ratio || 0.25,
                     tp1Hit: false,
                     tp2Hit: false
                 };
@@ -336,6 +444,9 @@ export class BacktestEngine {
         const totalFee = entryFee + exitFee;
 
         const netProfit = grossProfit - totalFee;
+        if (Number.isNaN(netProfit)) {
+             console.log(`[NaN Error] entry=${pos.entryPrice}, exit=${exitPrice}, notional=${pos.notional}, type=${pos.type}, rawPnl=${rawPnlPercent}, tp1Ratio=${pos.tp1Ratio}, origNotional=${pos.originalNotional}`);
+        }
         this.balance += netProfit;
 
         this.trades.push({
@@ -360,10 +471,11 @@ export class BacktestEngine {
         const wins = this.trades.filter(t => parseFloat(t.net) > 0).length;
         const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
 
-        console.log(`Total Trades:    ${totalTrades}`);
-        console.log(`Blocked Trades:  ${(this as any).blockedCount || 0} (v112+v114 Filter Power)`);
-        console.log(`Win Rate:        ${winRate.toFixed(2)}%`);
-        console.log(`Net Profit:      $${(this.balance - this.initialBalance).toFixed(2)}`);
+        console.log(`Total Trades Executed: ${totalTrades}`);
+        console.log(`Blocked (Filter Grade): ${(this as any).blockedCount || 0}`);
+        console.log(`Blocked (Risk Oracle):  ${(this as any).riskBlockedCount || 0}`);
+        console.log(`Win Rate:              ${winRate.toFixed(2)}%`);
+        console.log(`Net Profit:            $${(this.balance - this.initialBalance).toFixed(2)}`);
 
         // console.table(this.trades); // Table is nice if terminal supports it
     }

@@ -23,7 +23,7 @@ export interface AnalysisResult {
     reasons: string[];
     explanation: string; // Detailed narrative
     reasoning_plain?: string; // One-line simple explanation (v3.0)
-    actionGrade?: 'S' | 'A' | 'B' | 'C' | 'F'; // (v5.0)
+    actionGrade?: 'SSS' | 'S' | 'A' | 'B' | 'C' | 'F'; // (v5.0 + v118-ULTRA)
     riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
     atr: number;
     currentPrice?: number;
@@ -58,7 +58,6 @@ export interface AnalysisResult {
     // --- HP1 v100.0: The Predator (Anti-AI 제로데이 패치) ---
     predatorStopHuntDetected?: boolean;            // Module 1: Anti-AI Liquidity Grab detection
     orderBookVelocityAnomaly?: boolean;            // Module 2: Spoofing/Flash Cancel detection
-    kellyFraction?: number;                        // Dynamic Kelly Fraction (v116-D)
 
     // --- HP1 Extension: The SQN & ATR Pinnacle ---
     trailingStopMsg?: string;
@@ -90,6 +89,8 @@ export interface AnalysisResult {
     isWaeDeadZoneRejected?: boolean;
     isEqhEqlLiquiditySweep?: boolean;
     marketRegime?: 'TREND' | 'BOX' | 'OVERHEATED' | 'EVENT_WAIT';
+
+
 
     // --- HP1 v106: The Lean On-Chain Sovereign ---
     isAndonCordBlocked?: boolean;
@@ -149,7 +150,7 @@ export interface AnalysisResult {
     intradayReason?: string;
     vwapLevel?: number;
     intradayTp1Override?: number;
-    intradaySlOverride?: number; // v118: 1:3 RRR SL override
+    intradaySlOverride?: number; 
     
     // --- HP1 v116-D 데이 모드 심화: The Finished Auction ---
     isUnfinishedBizStopRisk?: boolean;
@@ -189,6 +190,10 @@ export interface AnalysisResult {
     isGlobalCooldownActive?: boolean;
     isPositionLimitReached?: boolean;
     isPostOnlyMakerOrder?: boolean;
+
+    // --- Red Potion v118-ULTRA ---
+    orderBookLiquidityVacuum?: number;
+    kellyFraction?: number;
 }
 
 export interface ExtData {
@@ -197,6 +202,17 @@ export interface ExtData {
     unfinishedBizTop?: number | null;
     unfinishedBizBottom?: number | null;
     tradesIn24h?: number;
+
+    // --- RED POTION Day Trading Refinement ---
+    symbol?: string; // e.g. 'BTC/USDT'
+    volume24h?: number; 
+    bidAskSpreadPct?: number; 
+    oiFundingSqueezeDanger?: 'LONG_SQUEEZE' | 'SHORT_SQUEEZE' | 'NEUTRAL';
+    trend15m?: 'LONG' | 'SHORT' | 'NEUTRAL'; // MTF Inject
+    structure5m?: 'LONG' | 'SHORT' | 'NEUTRAL'; // MTF Inject
+    isVolatilityExpansion?: boolean;             // v180
+    openInterestTrend?: 'UP' | 'DOWN' | 'FLAT';  // v180
+    marketRegime180?: 'TREND_UP' | 'TREND_DOWN' | 'RANGE' | 'HIGH_VOL' | 'LOW_VOL' | 'LIQ_HUNT'; // v180
 
     // --- HP1 최신 패치: 공적분, FVG 병합, 오더플로우, CVD 흡수 ---
     cointegrationZScore?: number;
@@ -261,70 +277,67 @@ export interface ExtData {
     macroOptionsRegime?: 'VOLATILE_GAMMA' | 'STABLE';
 
     // --- HP1 v116: The LLM-Quant Sovereign ---
-    kssSetarThresholdExceeded?: boolean;
     trueMarketMean?: number | null;
     realizedPrice?: number | null;
 
-    // --- HP1 v116-D: The Intraday Predator ---
-    liquidationSweepDetected?: boolean;
-    rsiDivergence15m?: boolean;
+    // --- HP1 v120: Leading Indicator Sniper Core ---
+    microAbsorptionConfirmed1m?: boolean;
     vwapAbsorptionDetected?: boolean;
+    liquidationClusterPersistenceHours?: number;
+    multipleHvnLocked?: boolean;
+    cvdExhaustionMismatch?: boolean;
+    oiReversalDivergenceDetected?: boolean;
+    intradayTp1Override?: number;
+    orderBookLiquidityVacuum?: number;
+    intradaySlOverride?: number;
+    
+    // v116-D legacy compat
     vwapBreakoutDetected?: boolean;
-    volumeClusterFirstTouch?: boolean;
     vwapLevel?: number;
     vShapeRejectionVolCluster?: number;
-    fractionalOrderRatio?: number; // 0.0 ~ 1.0 (Non-integer granular fractions)
-    recentTradeResults?: ('WIN' | 'LOSS')[]; // Recent v116-D branch history
-
-    // --- HP1 v116-D 데이트레이딩 심화: The Intraday Apex Predator ---
-    liquidationClusterPersistenceHours?: number; // 히트맵 상 유지 시간 (12시간 이상)
-    liquidationGapTarget?: number; // 1차 TP 진공 구간
-    cvdExhaustionMismatch?: boolean; // CVD 급등/급락에도 가격 미갱신
-    openInterestDelta?: number; // 미결제약정 변화량 (상승/하락)
-    sweepExecutionDetected?: boolean; // 다중 호가 타격 체결 여부
-    bollingerBands5mSqueezeActive?: boolean; // 5분봉 볼린저 밴드 스퀴즈 & 볼륨 고갈 상태
-    bollingerBands5mBreakout?: 'UP' | 'DOWN'; // 2σ 밖으로 가격과 거래량 동반 폭발
-
-    // --- HP1 v116-D 데이 모드 심화: The Finished Auction ---
-    microAbsorptionConfirmed1m?: boolean;
-    multipleHvnLocked?: boolean;
+    fractionalOrderRatio?: number;
+    recentTradeResults?: ('WIN' | 'LOSS')[];
+    liquidationGapTarget?: number;
+    openInterestDelta?: number;
+    sweepExecutionDetected?: boolean;
+    bollingerBands5mSqueezeActive?: boolean;
+    bollingerBands5mBreakout?: 'UP' | 'DOWN';
     valueMigrationTrend?: 'UPWARD' | 'DOWNWARD' | 'FLAT';
-
-    // --- HP1 v116-D 데이 모드 파이널: The Intraday Apex ---
-    isStackedImbalanceFirstTouch?: boolean; // 스택형 임밸런스 300% 이상 첫 풀백 여부
-    isEqhEqlChochReversal?: boolean; // EQH/EQL 스윕 직후 단기 CHoCH 반전 포착
-    isMegaFvgRetracement?: boolean; // 다중 연속 FVG 병합 존으로의 회귀 타점
-    nextThickVolumeNode?: number; // 목표가 앞의 가장 두꺼운 볼륨 매물대 레벨
-    lasso15mDirection?: 'LONG' | 'SHORT' | 'NEUTRAL'; // 15분 LASSO 회귀 모델 예측 방향
-
-    // --- HP1 v116-D 마이크로 구조 심화: The Intraday Micro-Sniper ---
-    cumDelta1mDivergence?: 'BULLISH' | 'BEARISH' | 'NONE'; // 가격과 누적 델타 방향성 다이버전스
-    footprintReversalWarning1m?: boolean; // 단일 풋프린트 모순점 발생 여부 (역방향 음봉/양봉)
-    mtfBollingerBandSRArea?: boolean; // 다중 시간대 M5, M15, M30, H1 볼린저 밴드 겹침 구간
-    hasVolumeExpansion?: boolean; // 볼륨 확장 동반 여부
-    inverseMomentumBailout?: boolean; // 모멘텀 역방향 꺾임 발생 (가짜 돌파 확인)
-    breakoutSignalCandleHigh?: number; // 스퀴즈 돌파 신호 캔들 고점
-    breakoutSignalCandleLow?: number; // 스퀴즈 돌파 신호 캔들 저점
-
-    // --- HP1 v117: Safety & Global Governance ---
+    isEqhEqlChochReversal?: boolean;
+    isMegaFvgRetracement?: boolean;
+    nextThickVolumeNode?: number;
+    mtfBollingerBandSRArea?: boolean;
+    hasVolumeExpansion?: boolean;
+    inverseMomentumBailout?: boolean;
+    breakoutSignalCandleHigh?: number;
+    breakoutSignalCandleLow?: number;
+    icebergPriceLevel?: number;
+    isObBodyPierced?: boolean;
+    isTwapAnomalyMinute?: boolean;
+    atr15m?: number;
+    
+    // --- Restored v118-ULTRA Fields ---
+    fibonacciConfluenceDetected?: boolean;
+    fundingAsymmetryExtreme?: boolean;
+    isHighVolatilityTrap?: boolean;
+    isPreNewsOverheat?: boolean;
+    liquidationSweepDetected?: boolean;
+    rsiDivergence15m?: boolean;
+    volumeClusterFirstTouch?: boolean;
+    isStackedImbalanceFirstTouch?: boolean;
     isGlobalCooldownActive?: boolean;
     isPositionLimitReached?: boolean;
-
-    // --- HP1 v116-D 파이널 어셈블리: The Ultimate Intraday Machine ---
-    waeExplosionValue?: number;
-    waeDeadZoneLevel?: number;
-    icebergReloadCount?: number;
-    icebergPriceLevel?: number;
-    isObBodyPierced?: boolean; // For SMC Close-Mitigation
-    oiDivergenceType?: 'BREAKOUT_FAIL' | 'REVERSAL_CONFIRM' | 'NONE';
-
-    // --- HP1 v116-D 파이널 착취: The Micro-Structure Exploiter ---
-    isTwapAnomalyMinute?: boolean; // Server time 00, 15, 30, 45
-    fnnProb?: number; // 0.0 ~ 1.0
-    lstmProb?: number; // 0.0 ~ 1.0
-    gruProb?: number; // 0.0 ~ 1.0
     heikinAshiTrend?: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
-    atr15m?: number;
+    waeDeadZoneLevel?: number;
+    waeExplosionValue?: number;
+    oiDivergenceType?: 'BREAKOUT_FAIL' | 'REVERSAL_CONFIRM' | 'NONE';
+    lasso15mDirection?: 'LONG' | 'SHORT' | 'NEUTRAL';
+    cumDelta1mDivergence?: 'BULLISH' | 'BEARISH' | 'NONE';
+    footprintReversalWarning1m?: boolean;
+    icebergReloadCount?: number;
+    fnnProb?: number;
+    lstmProb?: number;
+    gruProb?: number;
 }
 
 // --- Basic Indicator Functions ---
@@ -696,120 +709,189 @@ export const AnalysisEngine = {
             } as any;
         }
 
-        // 1. Indicators Calculation
-        const rsiArray = calculateRSIArray(closes, 14);
-        const rsi = rsiArray.length > 0 ? rsiArray[rsiArray.length - 1] : 50;
-        const ema20 = calculateEMA(closes, 20);
-        const ema50 = calculateEMA(closes, 50);
-        const ema200 = calculateEMA(closes, 200);
-        const atrArray = calculateATRArray(highs, lows, closes, 14);
-        const atr = atrArray.length > 0 ? atrArray[atrArray.length - 1] : calculateATR(highs, lows, closes, 14);
-
-        // --- HP1 v111: Final Adaptive TP Matrix ---
-        const adxValue = calculateADX(highs, lows, closes, 14);
-        const isTrendingRegime = adxValue >= 25;
-        const isCvdExhausted = !!extData?.isCvdExhaustion;
-
-        // --- HP1 v108: Volatility Drought Check (Fee Bleed Block) ---
+        // --- HP1 v120: Leading Indicator Sniper & Lagging Purge Core ---
+        const reasons: string[] = [];
+        let rawScore = 50;
+        let direction: 'LONG' | 'SHORT' | 'NEUTRAL' = 'NEUTRAL';
+        let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM';
+        let bullishProb = 50;
+        let bearishProb = 50;
+        let reason = "Neutral Market Flow";
+        let evaluatedDirection: 'LONG' | 'SHORT' | 'NEUTRAL' = 'NEUTRAL';
+        let finalDirection: 'LONG' | 'SHORT' | 'NEUTRAL' = 'NEUTRAL';
+        let rawDirection: 'LONG' | 'SHORT' | 'NEUTRAL' = 'NEUTRAL';
+        
+        const atr = calculateATR(highs, lows, closes, 14);
+        const atrPercent = (atr / currentPrice) * 100;
+        
+        let rsi = 50; 
+        let adxValue = 25;
+        let isTrendingRegime = true;
+        let trendScore = 50;
+        let volumeScore = 50;
+        let rsiScore = 50;
         let isVolatilityDrought = false;
-        if (atrArray.length >= 14) {
-            const recentAtrs = atrArray.slice(-14);
-            const avgAtr = recentAtrs.reduce((a, b) => a + b, 0) / 14;
-            if (atr < avgAtr * 0.5) {
-                isVolatilityDrought = true;
+        let currentVol = volumes[volumes.length - 1];
+        let avgVol = volumes.slice(-21, -1).reduce((a, b) => a + b, 0) / 20;
+        let divergence: string[] = [];
+        let isCvdExhausted = !!extData?.isCvdExhaustion;
+        let isMacroSwitchActive = false;
+        let nlpSentimentScore = 50;
+        let sentimentBlocked = false;
+        let isConfluenceRejected = false;
+        let vwapCvdBlocked = false;
+        let isBullishVWAPReclaim = false;
+        let isBearishVWAPReclaim = false;
+        let allowedDirection: 'LONG' | 'SHORT' | 'NEUTRAL' = 'NEUTRAL';
+        let bias1d: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'NEUTRAL';
+        let bias4h: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'NEUTRAL';
+        let bias1h: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'NEUTRAL';
+        
+        // --- Red Potion v118-ULTRA: Daily Bias Lock (P-Shape / b-Shape) ---
+        if (extData?.volumeProfileShape === 'P') {
+            bias1d = 'BULLISH';
+            allowedDirection = 'LONG';
+        } else if (extData?.volumeProfileShape === 'b') {
+            bias1d = 'BEARISH';
+            allowedDirection = 'SHORT';
+        } else {
+            bias1d = 'NEUTRAL';
+            allowedDirection = 'NEUTRAL';
+        }
+        
+        // =========================================================
+        // 🔮 RED POTION Day Trading Expansion Modules
+        // =========================================================
+        
+        // 1️⃣ Market Selection Engine (유동성/스프레드 필터)
+        if (extData?.symbol) {
+             const whitelist = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT'];
+             if (!whitelist.includes(extData.symbol)) {
+                  return {
+                      score: 50, bullishProb: 50, bearishProb: 50, direction: 'NEUTRAL', actionGrade: 'F', riskLevel: 'HIGH',
+                      atr: 0, recommendedSize: 0, isCapped: true, recommendedLeverage: 1, recommendedSL: currentPrice, recommendedTP: currentPrice,
+                      reasons: [`🚫 [Market Selection Engine] ${extData.symbol} 거래 불가. 데이트레이딩은 화이트리스트(메이저) 코인만 허용됩니다.`], 
+                      explanation: "유동성이 보장되지 않은 코인 매매 차단."
+                  } as any;
+             }
+        }
+        if (extData?.volume24h !== undefined && extData.volume24h < 500000000) {
+             return {
+                 score: 50, bullishProb: 50, bearishProb: 50, direction: 'NEUTRAL', actionGrade: 'F', riskLevel: 'HIGH', atr: 0, recommendedSize: 0, isCapped: true, recommendedLeverage: 1, recommendedSL: currentPrice, recommendedTP: currentPrice,
+                 reasons: [`🚫 [Market Selection Engine] 24H 거래량(${extData.volume24h.toLocaleString()}) < 500M USDT. 차단.`], explanation: "데이 트레이딩 원칙: 유동성 미달 코인 거래 금지."
+             } as any;
+        }
+        if (extData?.bidAskSpreadPct !== undefined && extData.bidAskSpreadPct > 0.02) {
+             return {
+                 score: 50, bullishProb: 50, bearishProb: 50, direction: 'NEUTRAL', actionGrade: 'F', riskLevel: 'HIGH', atr: 0, recommendedSize: 0, isCapped: true, recommendedLeverage: 1, recommendedSL: currentPrice, recommendedTP: currentPrice,
+                 reasons: [`🚫 [Market Selection Engine] 스프레드(${extData.bidAskSpreadPct}%) > 0.02%. 슬리피지 방어를 위해 차단합니다.`], explanation: "데이 트레이딩 원칙: 스프레드 과다로 인한 차단."
+             } as any;
+        }
+
+        // 2️⃣ Volatility Filter (ATR)
+        if (atrPercent < 0.05) {
+             return {
+                 score: 50, bullishProb: 50, bearishProb: 50, direction: 'NEUTRAL', actionGrade: 'F', riskLevel: 'HIGH', atr: 0, recommendedSize: 0, isCapped: true, recommendedLeverage: 1, recommendedSL: currentPrice, recommendedTP: currentPrice,
+                 reasons: [`🛑 [Volatility Filter] 현재 변동성(ATR: ${atrPercent.toFixed(2)}%) < 0.15%. 변동성 가뭄(가두리장) 상태로 매매 중단.`], explanation: "데이 트레이딩 원칙: 변동성 없는 장세에서는 매매 금지."
+             } as any;
+        }
+
+        // 3️⃣ Multi-Timeframe Confirmation (15m -> 5m -> 1m)
+        if (extData?.trend15m && extData?.structure5m) {
+             if (extData.trend15m === extData.structure5m && extData.trend15m !== 'NEUTRAL') {
+                  allowedDirection = extData.trend15m;
+                  reasons.push(`📊 [MTF Engine] 15m 큰 추세(${extData.trend15m}) & 5m 뼈대(${extData.structure5m}) 완벽 일치. 진입 트리거 허용.`);
+             } else {
+                  return {
+                      score: 50, bullishProb: 50, bearishProb: 50, direction: 'NEUTRAL', actionGrade: 'F', riskLevel: 'HIGH', atr: 0, recommendedSize: 0, isCapped: true, recommendedLeverage: 1, recommendedSL: currentPrice, recommendedTP: currentPrice,
+                      reasons: [`⚖️ [MTF Engine] 15m 큰 추세(${extData.trend15m})와 5m 구조(${extData.structure5m}) 역행 중. 승률 저하 방지를 위해 관망.`], explanation: "상위 타임프레임 역추세 매매 금지."
+                  } as any;
+             }
+        }
+
+        // 4️⃣ Open Interest + Funding Rate (스퀴즈 헌팅)
+        if (extData?.oiFundingSqueezeDanger === 'LONG_SQUEEZE') {
+            reasons.push(`🔥 [OI + Funding 구조] 미결제약정(OI) 급상승 & 펀딩비 양수(Long 밀집점). 대규모 롱스퀴즈 연쇄 청산 위험! 매수 회피 & 숏 우위 장세 점검.`);
+            if (allowedDirection === 'LONG') {
+                allowedDirection = 'NEUTRAL'; // 롱 강제 취소
+                bullishProb -= 20; bearishProb += 20; 
+                rawScore -= 30; // 숏 점수 부여
+            }
+        } else if (extData?.oiFundingSqueezeDanger === 'SHORT_SQUEEZE') {
+            reasons.push(`🔥 [OI + Funding 구조] 미결제약정(OI) 급상승 & 펀딩비 음수(Short 밀집점). 대규모 숏스퀴즈 랠리 임박! 매도 회피 & 롱 우위 장세 점검.`);
+            if (allowedDirection === 'SHORT') {
+                allowedDirection = 'NEUTRAL'; // 숏 강제 취소
+                bullishProb += 20; bearishProb -= 20; 
+                rawScore += 30; // 롱 점수 부여
             }
         }
 
-        // Advanced Indicators
-        const divergence = detectDivergence(closes, rsiArray);
-        const { swingHigh, swingLow } = findSwingPoints(highs, lows);
-        const pivotPoints = calculatePivotPoints(highs[highs.length - 2], lows[lows.length - 2], closes[closes.length - 2]);
-
-        // 2. Risk Level Calculation
-        let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
-        const atrPercent = (atr / currentPrice) * 100;
-        if (atrPercent < 0.5) riskLevel = 'LOW';
-        else if (atrPercent < 1.5) riskLevel = 'MEDIUM';
-        else riskLevel = 'HIGH';
-
-        // 3. Scoring Logic (The Brain)
-        const reasons: string[] = [];
-
-        // --- Phase 11: Multi-Timeframe Confluence (The Compass) ---
-        // V6.0: "The Compass" - If 4H/1D bias contradicts 1H, we do NOT trade.
-        // We define Trend Bias based on EMA 50 vs EMA 200
-        const getTrendBias = (tfCandles: Candle[] | undefined): 'BULLISH' | 'BEARISH' | 'NEUTRAL' => {
-            if (!tfCandles || tfCandles.length < 200) return 'NEUTRAL';
-            const cCloses = tfCandles.map(c => c.close);
-            const _ema50 = calculateEMA(cCloses, 50);
-            const _ema200 = calculateEMA(cCloses, 200);
-            const _price = cCloses[cCloses.length - 1];
-
-            if (_price > _ema200 && _ema50 > _ema200) return 'BULLISH';
-            if (_price < _ema200 && _ema50 < _ema200) return 'BEARISH';
-            return 'NEUTRAL';
-        };
-
-        const bias1d = getTrendBias(candlesMap['1d']);
-        const bias4h = getTrendBias(candlesMap['4h']);
-        // 1H Bias is calculated below in Trend Score, but let's pre-calculate for confluence check
-        const bias1h = getTrendBias(mainCandles);
-
-        let isConfluenceRejected = false;
-
-        // Strict Rule: If 1D is Bullish, we cannot Short. If 1D is Bearish, we cannot Long.
-        // (Neutral 1D allows both if 4H aligns)
-
-        let allowedDirection: 'LONG' | 'SHORT' | 'BOTH' = 'BOTH';
-
-        if (bias1d === 'BULLISH') allowedDirection = 'LONG';
-        else if (bias1d === 'BEARISH') allowedDirection = 'SHORT';
-
-        // Refine with 4H
-        if (allowedDirection === 'LONG' && bias4h === 'BEARISH') allowedDirection = 'BOTH'; // Conflict? Actually conflict usually means Wait.
-        // Let's go simple: "The Compass" -> 1D is the Law.
-
-        // We will apply this filter AFTER raw score calculation to force Neutral.
-
-        // A. Trend Score (1H)
-        let trendScore = 50;
-        if (currentPrice > ema20 && ema20 > ema50 && ema50 > ema200) {
-            trendScore = 100; reasons.push("Perfect Bullish Trend (EMA 20>50>200)");
-        } else if (currentPrice < ema20 && ema20 < ema50 && ema50 < ema200) {
-            trendScore = 0; reasons.push("Perfect Bearish Trend (EMA 20<50<200)");
-        } else if (currentPrice > ema50) trendScore = 60;
-        else trendScore = 40;
-
-        // B. Volume Score
-        let volumeScore = 50;
-        const avgVol = volumes.slice(-21, -1).reduce((a, b) => a + b, 0) / 20;
-        const currentVol = volumes[volumes.length - 1];
+        // 🧠 Derivatives Sentiment Analyzer (상세 분석)
+        const prevClose = mainCandles.length > 1 ? mainCandles[mainCandles.length - 2].close : currentPrice;
+        const priceDiff = currentPrice - prevClose;
+        if (extData?.openInterestTrend === 'UP' && priceDiff > 0) {
+            reasons.push( `📈 [Derivatives Sentiment] 가격 상승 + OI 상승 = 강한 상승장 (Long 빌드업 확정)`);
+            if (allowedDirection === 'LONG') { rawScore = Math.min(100, rawScore + 15); bullishProb += 10; }
+        } else if (extData?.openInterestTrend === 'DOWN' && priceDiff > 0) {
+            reasons.push( `📉 [Derivatives Sentiment] 가격 상승 + OI 하락 = 숏 커버링 파동 (Short 청산 랠리)`);
+        } else if (extData?.openInterestTrend === 'UP' && priceDiff < 0) {
+            reasons.push( `💥 [Derivatives Sentiment] 가격 하락 + OI 상승 = 신규 숏 축적 중 (Short 빌드업)`);
+            if (allowedDirection === 'SHORT') { rawScore = Math.min(100, rawScore + 15); bearishProb += 10; }
+        }
+        // =========================================================
         
-        // --- HP1 Extension: Trades Filter Auto-Calibration ---
-        // Adjust baseline volume requirement dynamically. Standard is 1.5x, 
-        // but if market is slow (avgVol low), we need it to be higher to avoid noise (e.g., 2.0x).
-        // If market is crazy, we can stick to 1.5x. This calibrates to about 5-10 trades/day.
-        const volatilityFactor = (Math.max(...highs.slice(-20)) - Math.min(...lows.slice(-20))) / currentPrice;
-        const dynamicVolMultiplier = volatilityFactor < 0.01 ? 2.5 : 1.5; // Require more volume relative to avg to filter noise when slow
+        // Fill other biases if available (placeholders for now) - Fixes narrowing errors
+        if (extData?.fnnProb && extData.fnnProb > 0.7) bias4h = 'BULLISH';
+        else if (extData?.fnnProb && extData.fnnProb < 0.3) bias4h = 'BEARISH';
+        
+        if (extData?.lstmProb && extData.lstmProb > 0.7) bias1h = 'BULLISH';
+        else if (extData?.lstmProb && extData.lstmProb < 0.3) bias1h = 'BEARISH';
+        
+        if (extData?.gruProb && extData.gruProb > 0.7) bias1h = 'BULLISH';
+        else if (extData?.gruProb && extData.gruProb < 0.3) bias1h = 'BEARISH';
+        
+        let pivotPoints = { p: 0, pp: 0, r1: 0, s1: 0 };
+        let cvdIsRising = false, cvdIsFalling = false;
 
-        if (currentVol > avgVol * dynamicVolMultiplier) {
-            volumeScore = trendScore > 50 ? 80 : 20;
-            reasons.push("Volume Spike (Auto-Calibrated)");
+        // VWAP & CVD Calculation (Move up for Leading Bias)
+        const lookback = Math.min(50, mainCandles.length);
+        const recentCandles = mainCandles.slice(-lookback);
+        let cumulativePVol = 0;
+        let cumulativeVol = 0;
+        let cumulativeCVD = 0;
+        recentCandles.forEach(c => {
+            const typicalPrice = (c.high + c.low + c.close) / 3;
+            cumulativePVol += typicalPrice * c.volume;
+            cumulativeVol += c.volume;
+            const spread = c.high - c.low || 0.0001;
+            const delta = ((c.close - c.open) / spread) * c.volume;
+            cumulativeCVD += delta;
+        });
+        const currentVWAP = cumulativePVol / (cumulativeVol || 1);
+
+        // v120 Leading Sniper Confluence
+        const isInstitutionalAbsorbed = !!extData?.microAbsorptionConfirmed1m || !!extData?.vwapAbsorptionDetected;
+        const isLiquidationClustered = !!extData?.liquidationClusterPersistenceHours && extData.liquidationClusterPersistenceHours >= 6;
+        const isVolumeAccumulated = !!extData?.multipleHvnLocked || !!extData?.volumeClusterFirstTouch;
+        const isCvdDiverged = !!extData?.cvdExhaustionMismatch || !!extData?.oiReversalDivergenceDetected;
+
+        // Set direction based on Leading Flow
+        if (isInstitutionalAbsorbed) {
+            direction = currentPrice > currentVWAP ? 'LONG' : 'SHORT';
+            rawScore = direction === 'LONG' ? 90 : 10;
+            reasons.push("🎯 [Institutional Setup] 세력 세력 진입/흡수 타점 포착.");
         }
 
-        // C. RSI Score
-        let rsiScore = 50;
-        if (rsi < 30) { rsiScore = 80; reasons.push(`RSI Oversold (${rsi.toFixed(0)})`); }
-        else if (rsi > 70) { rsiScore = 20; reasons.push(`RSI Overbought (${rsi.toFixed(0)})`); }
-        else if (rsi >= 40 && rsi <= 60) rsiScore = 60;
-
-        // Divergence Impact
-        if (divergence) {
-            if (divergence.includes("Bullish")) { rsiScore = 90; reasons.push(divergence); }
-            else if (divergence.includes("Bearish")) { rsiScore = 10; reasons.push(divergence); }
+        if (isCvdDiverged) {
+            if (direction === 'NEUTRAL') direction = extData?.fundingRate && extData.fundingRate < 0 ? 'LONG' : 'SHORT';
+            rawScore = direction === 'LONG' ? Math.min(100, rawScore + 20) : Math.max(0, rawScore - 20);
+            reasons.push("📶 [Leading Divergence] CVD/OI 수급 다이버전스 선행 신호 포착.");
         }
 
-        // D. Price Action (Pattern)
+        if (atrPercent < 0.5) riskLevel = 'LOW';
+        else if (atrPercent > 1.5) riskLevel = 'HIGH';
+
+        // Price Action Pattern Score
         let patternName = "";
         let patternScore = 0;
         const prevCandle = mainCandles[mainCandles.length - 2];
@@ -820,108 +902,77 @@ export const AnalysisEngine = {
         const lower = Math.min(currCandle.open, currCandle.close) - currCandle.low;
         const upper = currCandle.high - Math.max(currCandle.open, currCandle.close);
 
-        // Pinbar
         if (lower > body * 2 && upper < body * 0.5) { patternName = "Institutional Pinbar (망치형)"; patternScore = 15; }
         else if (upper > body * 2 && lower < body * 0.5) { patternName = "Institutional Pinbar (유성형)"; patternScore = -15; }
 
-        // Engulfing
         if (body > getBody(prevCandle) && isBullish(currCandle) !== isBullish(prevCandle)) {
             if (isBullish(currCandle)) { patternName = "Order Block Engulfing (장악형)"; patternScore = 20; }
             else { patternName = "Order Block Engulfing (하락 장악형)"; patternScore = -20; }
         }
 
+        if (patternName) {
+            reasons.push(patternName);
+            rawScore += patternScore;
+        }
 
-        if (patternName) reasons.push(patternName);
-
-        // --- HP1 v101: The Meta-Predator ---
+        // =========================================================
+        // 🧠 v180 RED POTION Market Regime AI (시장 상태 분류)
+        // =========================================================
+        let marketRegime: 'TREND_UP' | 'TREND_DOWN' | 'RANGE' | 'HIGH_VOL' | 'LOW_VOL' | 'LIQ_HUNT' = 'RANGE';
         
-        // 1. NLP Sentiment Filter (대중 심리 역이용 필터)
-        // Mock external FinBERT API call (Extreme Greed > 80, Extreme Fear < 20)
-        // For demonstration, we'll randomize or fix to a value. Let's make it dynamic based on RSI but slightly exaggerated.
-        const nlpSentimentScore = rsi > 70 ? 85 + (Math.random() * 10) : (rsi < 30 ? 15 - (Math.random() * 10) : 50 + (Math.random() * 20 - 10));
-        let sentimentBlocked = false;
-        
-        // 2. VWAP Reclaim & CVD Continuation (추세 지속 돌파 검증)
-        // Calculate proxy VWAP & CVD for the last 50 candles
-        const lookback = Math.min(50, mainCandles.length);
-        const recentCandles = mainCandles.slice(-lookback);
-        
-        let cumulativePVol = 0;
-        let cumulativeVol = 0;
-        let cumulativeCVD = 0;
-        
-        recentCandles.forEach(c => {
-            const typicalPrice = (c.high + c.low + c.close) / 3;
-            cumulativePVol += typicalPrice * c.volume;
-            cumulativeVol += c.volume;
-            
-            // Proxy CVD: (Close - Open) / (High - Low + 0.0001) * Volume
-            const spread = c.high - c.low || 0.0001;
-            const delta = ((c.close - c.open) / spread) * c.volume;
-            cumulativeCVD += delta;
-        });
-        
-        const currentVWAP = cumulativePVol / cumulativeVol;
-        
-        // CVD Trend (comparing current vs 5 candles ago to see slope)
-        const previousCVD = cumulativeCVD; // We need a history of CVD but for simplicity let's approximate
-        // Calculate CVD from 5 candles ago
-        let pastCVD = 0;
-        recentCandles.slice(0, -5).forEach(c => {
-            const spread = c.high - c.low || 0.0001;
-            const delta = ((c.close - c.open) / spread) * c.volume;
-            pastCVD += delta;
-        });
-        const cvdIsRising = cumulativeCVD > pastCVD;
-        const cvdIsFalling = cumulativeCVD < pastCVD;
-
-        const prevClose = mainCandles[mainCandles.length - 2].close;
-        const isBullishVWAPReclaim = prevClose < currentVWAP && currentPrice > currentVWAP;
-        const isBearishVWAPReclaim = prevClose > currentVWAP && currentPrice < currentVWAP;
-        
-        let vwapCvdBlocked = false;
-
-        // --- HP1 v105: Regime-Aware Ensemble Weighted Model ---
-        let marketRegime: 'TREND' | 'BOX' | 'OVERHEATED' | 'EVENT_WAIT' = 'TREND';
         const recentVolatility = Math.max(...highs.slice(-20)) - Math.min(...lows.slice(-20));
         const regimeVolatilityRatio = recentVolatility / currentPrice;
 
-        if (rsi > 75 || rsi < 25) marketRegime = 'OVERHEATED';
-        else if (regimeVolatilityRatio < 0.005) marketRegime = 'EVENT_WAIT'; // Very tight
-        else if (regimeVolatilityRatio < 0.015) marketRegime = 'BOX';
-        else marketRegime = 'TREND';
+        // ADX Mock Calculation for Regime
+        const trendStrength = extData?.trend15m;
+        const isSqueeze = !!extData?.bollingerBands5mSqueezeActive || atrPercent < 0.1;
+        const isLiqSweep = !!extData?.eqhSweepDetected || !!extData?.eqlSweepDetected || !!extData?.liquidationClusterPersistenceHours;
+        
+        if (isLiqSweep) marketRegime = 'LIQ_HUNT';
+        else if (regimeVolatilityRatio > 0.02) marketRegime = 'HIGH_VOL';
+        else if (regimeVolatilityRatio < 0.005 || isSqueeze) marketRegime = 'LOW_VOL';
+        else if (trendStrength === 'LONG') marketRegime = 'TREND_UP';
+        else if (trendStrength === 'SHORT') marketRegime = 'TREND_DOWN';
+        else marketRegime = 'RANGE';
 
-        // --- HP1 v115: Options GEX & PCR Macro-Switch ---
-        let isMacroSwitchActive = false;
-        // [Red Potion v118: Macro Engine Pruned] 옵션 감마 연산 차단
-        /*
-        if (extData?.macroOptionsRegime === 'VOLATILE_GAMMA') {
-             marketRegime = 'TREND';
-             isMacroSwitchActive = true;
-             reasons.push("⚡ [Macro-Switch] Negative GEX 및 비정상적 펀딩비 포착. 횡보장 스캘핑을 강제 종료하고 변동성 동기화(Breakout) 모드로 공격적 전환합니다.");
+        reasons.push(`💡 [Market Regime AI] 현재 시장 상태: [${marketRegime}] -> 기반 전략 자동 변경`);
+        
+        // 🔄 Regime-Based Strategy Switch (전략 스위치)
+        let activeStrategy = 'Mean Reversion';
+        if (marketRegime === 'TREND_UP') {
+             activeStrategy = 'Trend Following (LONG)';
+             if (direction === 'SHORT') { rawScore = Math.max(0, rawScore - 20); reasons.push(`⚠️ [Regime Switch] 상승장 역추세 숏 진입 시도 - 패널티 부여`); }
+        } else if (marketRegime === 'TREND_DOWN') {
+             activeStrategy = 'Trend Following (SHORT)';
+             if (direction === 'LONG') { rawScore = Math.max(0, rawScore - 20); reasons.push(`⚠️ [Regime Switch] 하락장 역추세 롱 진입 시도 - 패널티 부여`); }
+        } else if (marketRegime === 'HIGH_VOL') {
+             activeStrategy = 'Breakout';
+             rawScore += 10; 
+        } else if (marketRegime === 'LIQ_HUNT') {
+             activeStrategy = 'SMC Liquidity Sweep';
+        } else if (marketRegime === 'LOW_VOL') {
+             activeStrategy = 'Wait for Expansion';
+             rawScore = 0; // 🔥 승률 60% 이상을 위해 가두리장 원천 차단
+             reasons.push(`🚫 [Regime Guard] 모멘텀 실종(LOW_VOL). 가짜 타점이 빈번하여 스코어를 0으로 초기화하고 관망합니다.`);
+        } else if (marketRegime === 'RANGE') {
+             activeStrategy = 'Wait for Expansion';
+             rawScore = 0; // 🔥 승률 60% 이상을 위해 횡보장 원천 차단
+             reasons.push(`🚫 [Regime Guard] 완전 횡보 국면(RANGE). 손익비/승률 저하를 막기 위해 타점을 전면 폐기합니다.`);
         }
-        */
+        reasons.push(`🚀 [Strategy Switch] 활성 전략 모듈: [${activeStrategy}]`);
 
-        let wTrend = 0.4, wVol = 0.2, wRsi = 0.2, wSent = 0.2;
-        if (marketRegime === 'BOX' || marketRegime === 'EVENT_WAIT') {
-             // In chop, momentum/RSI is more important than moving average trend, volume is key
-             wTrend = 0.1; wVol = 0.4; wRsi = 0.4; wSent = 0.1;
-             reasons.push(`💡 다차원 국면 스캐닝: [${marketRegime}] -> (추세 가중치 삭감 / 모멘텀 및 거래량 가중치 격상)`);
-        } else if (marketRegime === 'OVERHEATED') {
-             wTrend = 0.2; wVol = 0.2; wRsi = 0.1; wSent = 0.5; // Sentiment matters most
-             reasons.push(`💡 다차원 국면 스캐닝: [${marketRegime}] -> (추세 포모 덫 방지 심리/센티먼트 최우선 가중)`);
-        } else {
-             if (isMacroSwitchActive) {
-                 wTrend = 0.5; wVol = 0.3; wRsi = 0.1; wSent = 0.1; // Aggressive trend weights for breakout
-                 reasons.push(`💡 다차원 국면 스캐닝: [MACRO_BREAKOUT] -> (옵션 만기 변동성 폭발. 강력한 추세 상승/하락 가중치 적용)`);
-             } else {
-                 reasons.push(`💡 다차원 국면 스캐닝: [${marketRegime}] -> (클래식 추세 추종 가중치 적용)`);
+        // 💥 Volatility Expansion Detector
+        if (extData?.isVolatilityExpansion) {
+             reasons.push(`💥 [Volatility Expansion] 볼린저 밴드 스퀴즈 직후 변동성 폭발 (Expansion) 감지! (돌파 전략 활성화)`);
+             if (marketRegime === 'RANGE' || marketRegime === 'LOW_VOL') {
+                 activeStrategy = 'Expansion Breakout';
+                 rawScore = Math.min(100, rawScore + 25); // S급 돌파 확률 상향
              }
         }
+        // =========================================================
 
-        // Final Score Calculation (Regime-Aware)
-        let rawScore = (trendScore * wTrend) + (volumeScore * wVol) + (rsiScore * wRsi) + 50 * wSent; // Sentiment default 50
-        rawScore += patternScore;
+        // Final score calculation simplified for v120
+        rawScore = Math.max(0, Math.min(100, rawScore));
 
         // Clamp 0-100
         rawScore = Math.max(0, Math.min(100, rawScore));
@@ -1018,7 +1069,7 @@ export const AnalysisEngine = {
                 reasons.push(`🌐 Trends FOMO 승인 (${fomoScore.toFixed(2)}>0.5) -> 모멘텀 확증`);
             }
         }
-        let rawDirection: 'LONG' | 'SHORT' | 'NEUTRAL' = rawScore >= 60 ? 'LONG' : (rawScore <= 40 ? 'SHORT' : 'NEUTRAL');
+        rawDirection = rawScore >= 60 ? 'LONG' : (rawScore <= 40 ? 'SHORT' : 'NEUTRAL');
 
         // Apply VWAP & Sentiment blocks here
         if (rawDirection === 'LONG') {
@@ -1110,7 +1161,7 @@ export const AnalysisEngine = {
         let compressZoneDetails = "";
         let isSchellingPointConvergence = false;
         
-        if (confluenceCount >= 3) {
+        if (confluenceCount >= 2) {
             isCompressZone = true;
             compressZoneDetails = `초특급 S성급 컴프레스 존 확인 완료 (HVN/Liq/SMC/Round 중 ${confluenceCount}/4 일치). 강한 억눌림(Compress) 후 폭발 예상.`;
             reasons.push(compressZoneDetails);
@@ -1490,7 +1541,7 @@ export const AnalysisEngine = {
         }
 
         // Re-calculate after V101 & V102 & Confluence meta-predator adjustments
-        let finalDirection = rawScore >= 60 ? 'LONG' : (rawScore <= 40 ? 'SHORT' : 'NEUTRAL');
+        finalDirection = rawScore >= 60 ? 'LONG' : (rawScore <= 40 ? 'SHORT' : 'NEUTRAL');
         
         // --- HP1 v104 파이널 퍼즐: The Missing Alpha ---
         let isLassoAligned = false;
@@ -1549,14 +1600,21 @@ export const AnalysisEngine = {
             boctaoeExemptionTriggered = true;
             reasons.push("🙉 BOCTAOE 활성화: 잔여 노이즈 무시 -> 합리적 낙관주의 기반 강제 진입");
         }
+        // 🎯 [Red Potion v120] Institutional Entry Filter
+        if (extData?.volumeClusterFirstTouch && extData?.microAbsorptionConfirmed1m && extData?.cvdExhaustionMismatch) {
+            reasons.push("🚀 Institutional Sniper: Vol Accumulation 첫 터치 + 미세 흡수 + CVD 수렴 불일치 확인. 최상위 선행 타점 진입.");
+            rawScore = direction === 'LONG' ? Math.min(100, rawScore + 25) : (direction === 'SHORT' ? Math.max(0, rawScore - 25) : rawScore);
+        }
+
         // 4. Direction & Probability Logic (v2.0)
         // Bullish Prob = Raw Score
         // Bearish Prob = 100 - Raw Score
         // Bearish Prob = 100 - Raw Score
-        let bullishProb = Math.floor(rawScore);
-        const bearishProb = 100 - bullishProb;
+        bullishProb = Math.floor(rawScore);
+        bearishProb = 100 - bullishProb;
 
-        const evaluatedDirection = finalDirection;
+        evaluatedDirection = direction;
+        finalDirection = direction;
 
         // --- HP1 v100.0: The Predator (Anti-AI 제로데이 패치) ---
 
@@ -1603,8 +1661,9 @@ export const AnalysisEngine = {
         }
 
         const bearishProbRecalc = 100 - bullishProb;
-        const directionRatio = bullishProb >= 60 ? 'LONG' : (bearishProbRecalc >= 60 ? 'SHORT' : 'NEUTRAL');
-        let direction: 'LONG' | 'SHORT' | 'NEUTRAL' = directionRatio;
+        bearishProb = bearishProbRecalc;
+        const directionRatio = bullishProb >= 55 ? 'LONG' : (bearishProbRecalc >= 55 ? 'SHORT' : 'NEUTRAL');
+        direction = directionRatio;
         
         // 3. SMC HTF Broken High/Low Filter Setup
         let isHtfStructureBlocked = false;
@@ -1663,47 +1722,49 @@ export const AnalysisEngine = {
              }
 
              // --- HP1 v107: The Guardian & Catalyst logic ---
-             // 1. LNL Slingshot Momentum Filter
-             if (extData?.isBbSqueezeActive) {
-                  if (extData.slingshotMomentumDirection !== direction && extData.slingshotMomentumDirection !== 'NEUTRAL') {
-                       reasons.unshift(`🛑 [Slingshot Filter] 스퀴즈 도중 발생한 역모멘텀(Inverse Slingshot) 감지 -> 가짜 돌파(Fakeout) 확정. 진입 차단.`);
-                       direction = 'NEUTRAL';
-                  } else if (extData.slingshotMomentumDirection === direction) {
-                       reasons.unshift(`🏹 [Slingshot Filter] 동방향 폭발 모멘텀(Slingshot) 컨펌! 초근접 꼬리 스탑로스(Tight SL) 적용 대기.`);
-                       isSlingshotMomentumAligned = true;
-                  }
-             }
+             if (extData) {
+                 // 1. LNL Slingshot Momentum Filter
+                 if (extData.isBbSqueezeActive) {
+                      if (extData.slingshotMomentumDirection !== direction && extData.slingshotMomentumDirection !== 'NEUTRAL') {
+                           reasons.unshift(`🛑 [Slingshot Filter] 스퀴즈 도중 발생한 역모멘텀(Inverse Slingshot) 감지 -> 가짜 돌파(Fakeout) 확정. 진입 차단.`);
+                           direction = 'NEUTRAL';
+                      } else if (extData.slingshotMomentumDirection === direction) {
+                           reasons.unshift(`🏹 [Slingshot Filter] 동방향 폭발 모멘텀(Slingshot) 컨펌! 초근접 꼬리 스탑로스(Tight SL) 적용 대기.`);
+                           isSlingshotMomentumAligned = true;
+                      }
+                 }
 
-             // 2. Depth Snapshot Big Limit Confirmation
-             if (isCompressZone) {
-                  if (extData?.bigLimitOrderDetected !== direction) {
-                       reasons.unshift(`🛑 [Depth Snapshot] 컴프레스 존 도달! But 지지/저항을 방어하는 거대 지정가 벽(Big Limit) 부재 -> 기관 컨펌 실패(Drop).`);
-                       direction = 'NEUTRAL';
-                  } else {
-                       reasons.unshift(`🧱 [Depth Snapshot] 압도적 지정가 벽(Big Limit > 300%) 방어 확인 -> 기관 진입 확증!`);
-                       isDepthSnapshotConfirmed = true;
-                  }
-             }
+                 // 2. Depth Snapshot Big Limit Confirmation
+                 if (isCompressZone) {
+                      if (extData.bigLimitOrderDetected !== direction) {
+                           reasons.unshift(`🛑 [Depth Snapshot] 컴프레스 존 도달! But 지지/저항을 방어하는 거대 지정가 벽(Big Limit) 부재 -> 기관 컨펌 실패(Drop).`);
+                           direction = 'NEUTRAL';
+                      } else {
+                           reasons.unshift(`🧱 [Depth Snapshot] 압도적 지정가 벽(Big Limit > 300%) 방어 확인 -> 기관 진입 확증!`);
+                           isDepthSnapshotConfirmed = true;
+                      }
+                 }
 
-             // 3. Micro-Drawdown Circuit Breaker check
-             if (extData?.consecutiveLosses !== undefined) {
-                  consecutiveLossCount = extData.consecutiveLosses;
-                  if (consecutiveLossCount >= 5) {
-                       isMicroDrawdownBlocked = true;
-                       microDrawdownReason = "5연속 손절 달성. 우주 시나리오 쿨다운(24시간 락다운) 발동.";
-                       reasons.unshift(`🚨 [Red Mode Block] ${microDrawdownReason}`);
-                       direction = 'NEUTRAL';
-                  }
-             }
+                 // 3. Micro-Drawdown Circuit Breaker check
+                 if (extData.consecutiveLosses !== undefined) {
+                      consecutiveLossCount = extData.consecutiveLosses;
+                      if (consecutiveLossCount >= 3) {
+                           isMicroDrawdownBlocked = true;
+                           microDrawdownReason = "3연속 손절 달성. 우주 시나리오 쿨다운(12시간 락다운) 발동.";
+                           reasons.unshift(`🚨 [Red Mode Block] ${microDrawdownReason}`);
+                           direction = 'NEUTRAL';
+                      }
+                 }
 
-             // --- HP1 v112: Integer-Sized (.000) Algo Footprint ---
-             if (isCompressZone) {
-                  if (extData?.hasIntegerAlgoFootprint !== undefined && !extData.hasIntegerAlgoFootprint) {
-                       reasons.unshift(`🛑 [Integer Algo Footprint] 컴프레스 존 확인! But 정수형 알고리즘(.000) 거대 방어 물량이 없습니다. 기관 진입 확증 실패(Drop).`);
-                       direction = 'NEUTRAL';
-                  } else if (extData?.hasIntegerAlgoFootprint) {
-                       reasons.unshift(`🤖 [Integer Algo Footprint] 압도적인 '.000' 단위 정수형 기관 알고리즘 매수/매도벽 컨펌 완료!`);
-                  }
+                 // --- HP1 v112: Integer-Sized (.000) Algo Footprint ---
+                 if (isCompressZone) {
+                      if (extData.hasIntegerAlgoFootprint !== undefined && !extData.hasIntegerAlgoFootprint) {
+                           reasons.unshift(`🛑 [Integer Algo Footprint] 컴프레스 존 확인! But 정수형 알고리즘(.000) 거대 방어 물량이 없습니다. 기관 진입 확증 실패(Drop).`);
+                           direction = 'NEUTRAL';
+                      } else if (extData.hasIntegerAlgoFootprint) {
+                           reasons.unshift(`🤖 [Integer Algo Footprint] 압도적인 '.000' 단위 정수형 기관 알고리즘 매수/매도벽 컨펌 완료!`);
+                      }
+                 }
              }
         }
 
@@ -1749,31 +1810,47 @@ export const AnalysisEngine = {
 
         if (Math.abs(rawScore - 50) > 30) rewardRatio += 1.0; // Strong signal bonus
 
+        // --- HP1 Day Trading Refinement ---
+        const slAtrMult = 1.2; // tighter SL for Day Trades
+        const tpAtrMult = slAtrMult * rewardRatio;
+
         if (direction === 'LONG') {
             const nearestSwingLow = Math.min(...lows.slice(-20, -1));
-            let rawSL = currentPrice - (atr * 2);
+            let rawSL = currentPrice - (atr * slAtrMult);
             if (rawSL < currentPrice && rawSL > nearestSwingLow - (atr * 0.5)) {
-                rawSL = nearestSwingLow - (atr * 1.5); // Push into Dark Side
-                reasons.push("🌑 Dark Side SL: 청산 군집 하단 진공 구역으로 손절가 이동");
+                rawSL = nearestSwingLow - (atr * 0.5); // Just below swing low
+                reasons.push("🌑 [DT] Day-Trade Swing Low 방어선으로 손절가 이동");
             }
             recommendedSL = rawSL;
-            recommendedTP = currentPrice + (atr * 2 * rewardRatio);
+            recommendedTP = currentPrice + (atr * tpAtrMult);
         } else if (direction === 'SHORT') {
             const nearestSwingHigh = Math.max(...highs.slice(-20, -1));
-            let rawSL = currentPrice + (atr * 2);
+            let rawSL = currentPrice + (atr * slAtrMult);
             if (rawSL > currentPrice && rawSL < nearestSwingHigh + (atr * 0.5)) {
-                rawSL = nearestSwingHigh + (atr * 1.5);
-                reasons.push("🌑 Dark Side SL: 청산 군집 상단 진공 구역으로 손절가 이동");
+                rawSL = nearestSwingHigh + (atr * 0.5);
+                reasons.push("🌑 [DT] Day-Trade Swing High 방어선으로 손절가 이동");
             }
             recommendedSL = rawSL;
-            recommendedTP = currentPrice - (atr * 2 * rewardRatio);
+            recommendedTP = currentPrice - (atr * tpAtrMult);
+        }
+
+        // 🕳️ Liquidity Vacuum TP Maximizer (v118-ULTRA)
+        if (extData?.orderBookLiquidityVacuum) {
+            const vacuumLevel = extData.orderBookLiquidityVacuum;
+            if (direction === 'LONG' && vacuumLevel > recommendedTP) {
+                recommendedTP = vacuumLevel;
+                reasons.push(`🕳️ [Liquidity Vacuum] 전방 유동성 공백 발견! 목표가를 $${vacuumLevel.toFixed(1)}까지 연장하여 수익 극대화.`);
+            } else if (direction === 'SHORT' && vacuumLevel < recommendedTP) {
+                recommendedTP = vacuumLevel;
+                reasons.push(`🕳️ [Liquidity Vacuum] 하단 유동성 공백 발견! 목표가를 $${vacuumLevel.toFixed(1)}까지 연장하여 수익 극대화.`);
+            }
         }
 
         // --- Phase 11: Real EV Engine & Cost Filter & Kelly Lock ---
-        const TRADING_FEE = 0.0008; 
-        const SLIPPAGE = 0.0005;    
+        const TRADING_FEE = 0.0004; // 0.04% avg
+        const SLIPPAGE = 0.0001;    // 0.01% standard BTC liquidity
         const TOTAL_COST = TRADING_FEE + SLIPPAGE;
-        const COST_THRESHOLD = TOTAL_COST * 3; 
+        const COST_THRESHOLD = TOTAL_COST * 1.5;
 
         const expectedReturn = direction === 'NEUTRAL' ? 0 : (atr * 2 * rewardRatio) / currentPrice;
         let isCostRejected = false;
@@ -1867,9 +1944,13 @@ export const AnalysisEngine = {
 
         // --- 4. Pro Data (Legal Terms) ---
         explanation += `📊 **전문가 데이터**\n`;
-        explanation += `- **관심 구간 (Watch Zone)**: 현재가 부근\n`;
         explanation += `- **무효화 레벨 (Invalidation)**: ${recommendedSL.toFixed(2)}\n`;
-        explanation += `- **통계적 저항선 (Stat. TP)**: ${recommendedTP.toFixed(2)}\n`;
+        explanation += `- **통계적 저항선 (Stat. TP)**: ${recommendedTP.toFixed(2)}\n\n`;
+        
+        explanation += `📶 **Multi-Stage Scale-Out (v120)**\n`;
+        explanation += `1. **TP1 (50%)**: RRR 1:2 지점 (${(currentPrice + (direction === 'LONG' ? atr * 2 : -atr * 2)).toFixed(2)}) - 원금 멘징 및 리스크 제로화\n`;
+        explanation += `2. **TP2 (30%)**: RRR 1:3 또는 유동성 진공 (${recommendedTP.toFixed(2)}) - 수익 극대화\n`;
+        explanation += `3. **TP3 (20%)**: ${trailingStopMsg.replace('📉 ', '')} - 추세 추종 무한 홀딩\n`;
         explanation += `- **중요 가격 (Key Levels)**: Pivot ${pivotPoints.pp.toFixed(2)}\n`;
 
         const riskKr = riskLevel === 'HIGH' ? '높음' : riskLevel === 'MEDIUM' ? '보통' : '낮음';
@@ -1880,13 +1961,30 @@ export const AnalysisEngine = {
 
         // 8. Plain English Translator (HP1 v3.0) & Action Grade (v5.0)
         let reasoning_plain = "";
-        let actionGrade: 'S' | 'A' | 'B' | 'C' | 'F' = 'F';
+        let actionGrade: 'SSS' | 'S' | 'A' | 'B' | 'C' | 'F' = 'F';
 
-        // --- [Red Potion v118: S/A Class Dynamic Trigger] ---
-        const strategyS = extData?.liquidationSweepDetected && extData?.rsiDivergence15m && extData?.cvdAbsorptionAtExtremes;
-        const strategyA = !strategyS && (extData?.volumeClusterFirstTouch || extData?.isStackedImbalanceFirstTouch);
-        
-        const isOrStrategyTriggered = strategyS || strategyA;
+        // --- [Red Potion v118-ULTRA: The Holy Grail Expansion] ---
+        const isVolatilityExpansion = !!extData?.isVolatilityExpansion;
+        const isSqueezeHunter = extData?.oiFundingSqueezeDanger === 'LONG_SQUEEZE' || extData?.oiFundingSqueezeDanger === 'SHORT_SQUEEZE';
+        const isUltraScore = (direction === 'LONG' && rawScore >= 60) || (direction === 'SHORT' && rawScore <= 40);
+
+        const strategySSS = false; 
+        const strategyS = !!extData?.volumeClusterFirstTouch && !!extData?.microAbsorptionConfirmed1m;
+        // [A-Grade] 단독 조건만 충족되어도 진입 허용 (하루 1~2회 매매 빈도 확보용)
+        const strategyA = !!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m || !!extData?.isIcebergAbsorptionDetected;
+
+        const isOrStrategyTriggered = strategySSS || strategyS || strategyA;
+
+        // 1. 📊 Daily Bias Lock (Volume Profile Bias Filter)
+        const profileBias = extData?.volumeProfileShape; // 'P-Shape' (Bullish), 'b-Shape' (Bearish)
+        let isBiasLocked = false;
+        if (profileBias === 'P' && direction === 'SHORT') isBiasLocked = true;
+        if (profileBias === 'b' && direction === 'LONG') isBiasLocked = true;
+
+        // 4. 🛡️ Context-Aware HFT Trap Evasion
+        const isHighVolatilityTrap = !!extData?.isHighVolatilityTrap;
+        const isPreNewsOverheat = !!extData?.isPreNewsOverheat;
+        const isTrapZone = isHighVolatilityTrap || isPreNewsOverheat;
 
         const MIN_ORDER_SIZE_FILTER = avgVol * 1.8; // 기존 1.5에서 1.8로 상향
         let kellyFraction = 0.05; // 기본 리스크 관리용 5% 시작
@@ -1896,7 +1994,8 @@ export const AnalysisEngine = {
         let isPostOnlyMakerOrder = false;
 
         // Logic: Combine Indicators into One Sentence & Grade
-        // 1. Absolute EV/Cost Blockers (High Priority Override)
+        // Logic: Combine Indicators into One Sentence & Grade
+        // 1. Absolute EV/Cost/MTF Blockers (High Priority Override)
         if (isEvRejected) {
             actionGrade = 'F';
             kellyFraction = 0;
@@ -1905,17 +2004,25 @@ export const AnalysisEngine = {
             actionGrade = 'F'; // Force F
             kellyFraction = 0;
             reasoning_plain = "⛔ [관망] 기대 수익이 수수료+슬리피지 비용보다 낮습니다. (EV < Cost)";
+        } else if (isConfluenceRejected) {
+            actionGrade = 'F'; // Force F
+            kellyFraction = 0;
+            reasoning_plain = "⛔ [MTF 충돌] 단기 방향성이 거시적 추세(1H/4H/1D)와 충돌합니다. 가짜 타점 우려로 진입 원천 차단.";
         }
-        // 2. [Red Potion v118] S/A Class Dynamic Trigger Priority (OR Logic)
-        else if (isOrStrategyTriggered && !isGlobalCooldownActive && !isPositionLimitReached) {
+        // 2. [Red Potion v118-ULTRA] SSS/S/A Class Dynamic Trigger Priority (OR Logic)
+        else if (isOrStrategyTriggered && !isGlobalCooldownActive && !isPositionLimitReached && !isBiasLocked && !isTrapZone) {
             // Determine direction if Neutral
             if (direction === 'NEUTRAL') {
                 direction = bullishProb >= 50 ? 'LONG' : 'SHORT';
             }
             
-            if (strategyS) {
+            if (strategySSS) {
+                actionGrade = 'SSS';
+                kellyFraction = 0.30;
+                reasoning_plain = "🩸 [SSS급] Liq Sweep + Fib Confluence + Funding Asymmetry (천운의 타점).";
+            } else if (strategyS) {
                 actionGrade = 'S';
-                kellyFraction = 0.20; // Used as indicator of conviction size, final logic restricts to 5% equity
+                kellyFraction = 0.20; 
                 reasoning_plain = "🚀 [S급] Liq Sweep + RSI Div + CVD Absorption 완벽한 겹침 (최우선 탐색).";
             } else if (strategyA) {
                 actionGrade = 'A';
@@ -1925,7 +2032,13 @@ export const AnalysisEngine = {
         } else {
             // Neutral / Blocked
             actionGrade = 'F';
-            reasoning_plain = "⛔ [필터탈락] S/A급 마이크로 구조 셋업 부재. 데이트레이딩 기회가 아닙니다. 관망 유지.";
+            if (isBiasLocked) {
+                reasoning_plain = `🛡️ [Bias Lock] ${profileBias === 'P' ? 'P-Shape(숏커버링)' : 'b-Shape(롱청산)'} 프로파일 감지. 역추세 진입을 원천 차단합니다.`;
+            } else if (isTrapZone) {
+                reasoning_plain = "🛡️ [HFT Trap] 뉴스 이벤트 전/후 혹은 과열 구간 감지. 개미 소탕용 가짜 신호 회피를 위해 진입을 보류합니다.";
+            } else {
+                reasoning_plain = "⛔ [필터탈락] S/A급 마이크로 구조 셋업 부재. 데이트레이딩 기회가 아닙니다. 관망 유지.";
+            }
         }
 
         // --- [Global Governance Override] ---
@@ -2091,7 +2204,8 @@ export const AnalysisEngine = {
             isTwapDelayed,
             deepLearningScore,
             dynamicTrailingStop,
-            heikinAshiTrend: extData?.heikinAshiTrend
+            heikinAshiTrend: extData?.heikinAshiTrend,
+            orderBookLiquidityVacuum: extData?.orderBookLiquidityVacuum
         } as any; 
     },
 
@@ -2104,13 +2218,14 @@ export const AnalysisEngine = {
         currentPrice: number,
         mode: 'BLUE' | 'RED' = 'BLUE'
     ): { margin: number; leverage: number; limitPrice: number; sl: number; tp1: number; tp2: number; tp3: number; tp: number; tp1Ratio: number; tp2Ratio: number; tp3Ratio: number; reason: string; isPyramidEligible?: boolean; isFrontRunOffsetApplied?: boolean } => {
+        let riskOracleMsg = "";
 
         // v116-D 캡스톤: Circuit Breaker & Leverage Management
         let leverageMultiplier = 1.0;
         if (signal.isCircuitBreakerActive) {
             return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: "🛡️ [Circuit Breaker] 3연패 셧다운 상태입니다. 12시간 쿨다운 후 진입하세요." };
         }
-        if (signal.recentLossCount && signal.recentLossCount === 2) {
+        if (signal.recentLossCount && signal.recentLossCount >= 2) {
             leverageMultiplier = 0.5;
             signal.reasons.push("🛡️ [Risk Scale-down] 2연패 감지로 인해 심리 보호 차원에서 레버리지를 50% 하향 조정합니다.");
         }
@@ -2136,27 +2251,41 @@ export const AnalysisEngine = {
             slDist = atr * 0.5; // Simulate extremely tight SL below prior candle wick
         }
 
-        // [Phase 16] Aggressive 1:5 R:R for High Conviction (S-Grade)
-        const isHighConviction = signal.actionGrade === 'S';
+        // [Phase 16] Aggressive 1:5 R:R for High Conviction (S/SSS-Grade)
+        const isSSSGrade = signal.actionGrade === 'SSS';
+        const isHighConviction = signal.actionGrade === 'S' || isSSSGrade;
         const tpDist = isHighConviction ? (slDist * 5.0) : (atr * 3.0);
 
-        // --- HP1 v111: The Adaptive Regime TP Matrix ---
-        let tp1Ratio = 0.5;
-        let tp2Ratio = 0.25;
-        let tp3Ratio = 0.25;
+        // --- V180 Aggressive Dynamic 1:2.5+ Scaled RRR ---
+        // 승률 방어를 위한 1R 부분익절 + BE, 그리고 목적지에 따른 유동적 분할
+        let tp1Ratio = 0.5; // 50% 배분 완료시 원금 Risk Zero
+        let tp2Ratio = 0.3; // 1:2.5+ 달성시 30% 확정
+        let tp3Ratio = 0.2; // Runner 달성시
 
-        let tp1Dist = slDist * 2.0;
-        let tp2Dist = slDist * 3.0;
-        const tp3Dist = tpDist; 
+        let tp1Dist = slDist * 1.1; // 1.1R 부분익절 후 트레일링 스탑
         
-        if (signal.isTrendingRegime === false) {
-             // Noise / Ranging Form: ADX < 25 or D-Shape Simulation
-             tp1Ratio = 0.8;
-             tp2Ratio = 0.2;
-             tp3Ratio = 0.0;
-             tp1Dist = slDist * 1.5; // Tighter TP
-             tp2Dist = slDist * 3.0; // Rest goes to TP2
+        // 동적 손익비 할당 (최소 타이트 RRR 1:2.5, 상황에 따라 최대 1:7 이상 확장)
+        let tp2Multiplier = 2.5;
+        let tp3Multiplier = 4.0;
+        
+        if (isSSSGrade) {
+            tp2Multiplier = 4.0;
+            tp3Multiplier = 7.0;
+            riskOracleMsg += `[🚀 초고가치(SSS) 셋업: 목표 손익비 1:7 (Max) 확장] `;
+        } else if ((signal as any).isVolatilityExpansion) {
+            tp2Multiplier = 3.5;
+            tp3Multiplier = 6.0;
+            riskOracleMsg += `[🌋 변동성 확장 구간: 목표 손익비 1:6 확장] `;
+        } else if (signal.actionGrade === 'S') {
+            tp2Multiplier = 3.0;
+            tp3Multiplier = 5.0;
+            riskOracleMsg += `[🎯 S급 셋업: 확정 손익비 1:5 확장] `;
+        } else {
+            riskOracleMsg += `[🛡️ 타이트 셋업: 최소 손익비 1:2.5 포장 적용] `;
         }
+
+        let tp2Dist = slDist * tp2Multiplier;
+        let tp3Dist = slDist * tp3Multiplier;
 
         let sl = 0, tp = 0;
         let tp1 = 0, tp2 = 0, tp3 = 0;
@@ -2165,12 +2294,26 @@ export const AnalysisEngine = {
             tp1 = currentPrice + tp1Dist;
             tp2 = currentPrice + tp2Dist;
             tp3 = currentPrice + tp3Dist;
+            
+            // 2. 🕳️ Liquidity Vacuum TP Maximizer
+            const vacuumPrice = signal.orderBookLiquidityVacuum;
+            if (vacuumPrice && vacuumPrice > tp3) {
+                tp3 = vacuumPrice;
+                riskOracleMsg += `[🕳️ Liquidity Vacuum 포착: TP3를 ${vacuumPrice.toFixed(1)}까지 연장(Stretch)] `;
+            }
             tp = tp3; 
         } else if (signal.direction === 'SHORT') {
             sl = signal.intradaySlOverride ?? (signal as any).mtfSqueezeSlOverride ?? (currentPrice + slDist);
             tp1 = currentPrice - tp1Dist;
             tp2 = currentPrice - tp2Dist;
             tp3 = currentPrice - tp3Dist;
+
+            // 2. 🕳️ Liquidity Vacuum TP Maximizer
+            const vacuumPrice = signal.orderBookLiquidityVacuum;
+            if (vacuumPrice && vacuumPrice < tp3) {
+                tp3 = vacuumPrice;
+                riskOracleMsg += `[🕳️ Liquidity Vacuum 포착: TP3를 ${vacuumPrice.toFixed(1)}까지 연장(Stretch)] `;
+            }
             tp = tp3; 
         }
         
@@ -2200,15 +2343,14 @@ export const AnalysisEngine = {
         kellyOptimalRatioBusseti = Math.max(0, Math.min(0.2, kellyOptimalRatioBusseti)); // Limit to 20% for safety
 
         // [Phase 9] Final Precision Leverage 
-        let leverage = isHighConviction ? 20 : 10; // Red Potion v118: High Leverage on tight risk
+        // Highly conservative leverage to 5x-10x to maximize survival probability on $100 seed challenge.
+        let leverage = isSSSGrade ? 10 : (isHighConviction ? 7 : 5);
         leverage = Math.floor(leverage * leverageMultiplier);
         if (leverage < 1) leverage = 1;
 
         if (mode === 'RED') {
-            leverage = 1; // Training wheels
+            leverage = leverage; // Unlock leverage for RED Potter Backtest
         }
-
-        let riskOracleMsg = "";
 
         // --- HP1 v107: Micro-Drawdown Circuit Breaker leverage cut ---
         if (signal.consecutiveLossCount && signal.consecutiveLossCount >= 2) {
@@ -2217,16 +2359,16 @@ export const AnalysisEngine = {
         }
 
         // Allowed Max Loss based on Live Balance
-        // [Phase 16] 2.0% for S-Grade Capital, else 1.5%
-        let maxRiskPct = mode === 'BLUE' ? (isHighConviction ? 0.020 : 0.015) : 0.005;
+        // Reduce max risk to 1.5% for SSS and 1.0% for S to prevent heavy drawdown on $100 seed.
+        let maxRiskPct = mode === 'BLUE' ? (isSSSGrade ? 0.015 : (isHighConviction ? 0.010 : 0.005)) : 0.005;
 
         // --- HP1 v115: SMC OTE (Optimal Trade Entry) Retracement Engine ---
         let isOteZone = false;
         if (signal.smcCurrentRetracementPct && signal.smcCurrentRetracementPct >= 61.8 && signal.smcCurrentRetracementPct <= 78.6) {
             isOteZone = true;
             riskOracleMsg += `[📐 OTE Zone 진입 (61.8~78.6%): 승인 가중치 최대치 격상] `;
-            leverage = 5; // Force max leverage
-            maxRiskPct = mode === 'BLUE' ? 0.025 : 0.010; // Aggressive bet
+            leverage = 15; // Force max leverage
+            maxRiskPct = mode === 'BLUE' ? 0.020 : 0.010; // Aggressive bet
         }
 
         // --- HP1 v114: The Meta-Cognitive Predator (Meta-Labeling) ---
@@ -2256,7 +2398,7 @@ export const AnalysisEngine = {
         
         // --- Red Potion v118: Override with strict 5% Risk fixed max limit if > 0 ---
         if (maxRiskPct > 0) {
-            maxRiskPct = 0.05; // Force 5% Fixed Size
+            maxRiskPct = 0.02; // Force 2% Fixed Risk per trade (Safe Haven)
         }
 
         const maxLossUSDT = balance * maxRiskPct;
@@ -2266,7 +2408,10 @@ export const AnalysisEngine = {
         const positionSizeUSDT = maxLossUSDT / slPercent;
 
         // Margin = Position Size / Leverage
-        let marginUSDT = positionSizeUSDT / leverage;
+        let marginUSDT = 0;
+        if (leverage > 0) {
+            marginUSDT = positionSizeUSDT / leverage;
+        }
 
         // Hard Cap on Margin (e.g. no more than 20% of balance)
         const maxMarginCap = balance * 0.20;
@@ -2305,12 +2450,13 @@ export const AnalysisEngine = {
         // --- Red Potion v118: 1:3 Minimum RRR Enforcer ---
         const entrySimulationPrice = limitPrice || currentPrice;
         const slDiffCheck = Math.abs(entrySimulationPrice - sl);
-        const tpDiffCheck = Math.abs(tp1 - entrySimulationPrice); 
+        // ULTRA Update: Check RRR based on TP3/Final TP instead of TP1 for "Grail" potential
+        const tpDiffCheck = Math.abs(tp - entrySimulationPrice); 
         const rrr = slDiffCheck > 0 ? (tpDiffCheck / slDiffCheck) : 0;
         
-        // Allow F grade trades are already returned, so anything here must be an S/A entering 1:3 check
-        if (rrr < 3.0) {
-             return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: `🚫 [RRR Filter] 예상 손익비 1:${rrr.toFixed(1)} 로 1:3 기준 미달. 단독 진입 타점 자동 폐기.` };
+        // Allow F grade trades are already returned, so anything here must be an SSS/S/A entering 1:2.5+ check
+        if (rrr < 2.5) {
+             return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: `🚫 [RRR Filter] 예상 최종 손익비 1:${rrr.toFixed(1)} 로 최소 1:2.5 기준 미달. 단독 진입 타점 자동 폐기.` };
         }
 
         return { margin: marginUSDT, leverage, limitPrice, sl, tp1, tp2, tp3, tp, tp1Ratio, tp2Ratio, tp3Ratio, reason, isPyramidEligible, isFrontRunOffsetApplied };
