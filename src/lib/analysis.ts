@@ -149,6 +149,7 @@ export interface AnalysisResult {
     intradayReason?: string;
     vwapLevel?: number;
     intradayTp1Override?: number;
+    intradaySlOverride?: number; // v118: 1:3 RRR SL override
     
     // --- HP1 v116-D 데이 모드 심화: The Finished Auction ---
     isUnfinishedBizStopRisk?: boolean;
@@ -892,11 +893,14 @@ export const AnalysisEngine = {
 
         // --- HP1 v115: Options GEX & PCR Macro-Switch ---
         let isMacroSwitchActive = false;
+        // [Red Potion v118: Macro Engine Pruned] 옵션 감마 연산 차단
+        /*
         if (extData?.macroOptionsRegime === 'VOLATILE_GAMMA') {
              marketRegime = 'TREND';
              isMacroSwitchActive = true;
              reasons.push("⚡ [Macro-Switch] Negative GEX 및 비정상적 펀딩비 포착. 횡보장 스캘핑을 강제 종료하고 변동성 동기화(Breakout) 모드로 공격적 전환합니다.");
         }
+        */
 
         let wTrend = 0.4, wVol = 0.2, wRsi = 0.2, wSent = 0.2;
         if (marketRegime === 'BOX' || marketRegime === 'EVENT_WAIT') {
@@ -1128,6 +1132,8 @@ export const AnalysisEngine = {
         
         // --- HP1 v116: Non-Linear KSS & SETAR Arbitrage Engine ---
         let isKssArbitrageAligned = false;
+        // [Red Potion v118: Macro Engine Pruned] KSS 차익거래 모듈 연산 중단
+        /*
         if (extData?.kssSetarThresholdExceeded) {
             isMarketNeutralPairsTrade = true;
             isKssArbitrageAligned = true;
@@ -1145,10 +1151,13 @@ export const AnalysisEngine = {
             rawScore = 100; // S-grade confirmation
             reasons.push(`⚖️ Cointegration Pairs Arbitrage: 스프레드 한계 돌파(Z-Score > 2.0). Market-Neutral S급 타점 확정! (고평가숏/저평가롱 동시진입)`);
         }
+        */
 
         // --- HP1 v116: Glassnode TMM Macro-Floor Lock ---
         let isMacroFloorLocked = false;
         const tmmTarget = extData?.trueMarketMean || extData?.realizedPrice || undefined;
+        // [Red Potion v118: Macro Engine Pruned] TMM Macro-Floor 필터 중단
+        /*
         if (tmmTarget) {
             const floorMargin = tmmTarget * 1.05; // 5% buffer above TMM/Realized Price
             if (currentPrice <= floorMargin && rawDirection === 'SHORT') {
@@ -1161,6 +1170,7 @@ export const AnalysisEngine = {
                 reasons.push(`🐋 [TMM Macro-Floor Lock] True Market Mean($${tmmTarget.toFixed(2)}) 방어선 진입! 딥 다이브 매집 구역(Macro Support). 절대적 롱 매수 우위로 가중치 최대 격상!`);
             }
         }
+        */
 
         // --- HP1 v116-D 데이 모드 심화: The Finished Auction (가치 영역 이동 필터) ---
         let isValueMigrationBlocked = false;
@@ -1599,6 +1609,8 @@ export const AnalysisEngine = {
         // 3. SMC HTF Broken High/Low Filter Setup
         let isHtfStructureBlocked = false;
         let htfBlockReason = "";
+        // [Red Potion v118: Macro Engine Pruned] 상위 시간대(D1/W1) SMC 필터 중단
+        /*
         if (extData?.htfBrokenHigh && direction === 'SHORT') {
             isHtfStructureBlocked = true;
             htfBlockReason = "상위 시간대(1D/1W) 구조 돌파(BrokenHigh) 진행 중. 숏(SHORT) 타점 전면 락다운 차단.";
@@ -1610,6 +1622,7 @@ export const AnalysisEngine = {
             direction = 'NEUTRAL';
             reasons.unshift(`🧱 [HTF Lockdown] ${htfBlockReason}`);
         }
+        */
 
         // --- HP1 v106: The Lean On-Chain Sovereign logic ---
         let mvrvBiasMatched = true;
@@ -1869,15 +1882,11 @@ export const AnalysisEngine = {
         let reasoning_plain = "";
         let actionGrade: 'S' | 'A' | 'B' | 'C' | 'F' = 'F';
 
-        // --- [The Micro-Structure Exploiter: Decoupled OR-Logic] ---
-        // 전략 A: 30분 볼륨 클러스터 리젝션 (High WinRate, Medium Payoff)
-        const strategyA = extData?.vShapeRejectionVolCluster && Math.abs(currentPrice - extData.vShapeRejectionVolCluster) / extData.vShapeRejectionVolCluster < 0.002;
-        // 전략 B: 청산맵 스윕 + RSI 다이버전스 (Medium WinRate, High Payoff)
-        const strategyB = extData?.liquidationSweepDetected && extData?.rsiDivergence15m;
-        // 전략 C: 적응형 BB 스퀴즈 돌파 (Low WinRate, Extreme Payoff)
-        const strategyC = extData?.bollingerBands5mSqueezeActive && extData?.bollingerBands5mBreakout;
+        // --- [Red Potion v118: S/A Class Dynamic Trigger] ---
+        const strategyS = extData?.liquidationSweepDetected && extData?.rsiDivergence15m && extData?.cvdAbsorptionAtExtremes;
+        const strategyA = !strategyS && (extData?.volumeClusterFirstTouch || extData?.isStackedImbalanceFirstTouch);
         
-        const isOrStrategyTriggered = strategyA || strategyB || strategyC;
+        const isOrStrategyTriggered = strategyS || strategyA;
 
         const MIN_ORDER_SIZE_FILTER = avgVol * 1.8; // 기존 1.5에서 1.8로 상향
         let kellyFraction = 0.05; // 기본 리스크 관리용 5% 시작
@@ -1897,70 +1906,26 @@ export const AnalysisEngine = {
             kellyFraction = 0;
             reasoning_plain = "⛔ [관망] 기대 수익이 수수료+슬리피지 비용보다 낮습니다. (EV < Cost)";
         }
-        // 2. Strategy Triggers Priority (OR Logic) - They can override Neutral if high conviction
+        // 2. [Red Potion v118] S/A Class Dynamic Trigger Priority (OR Logic)
         else if (isOrStrategyTriggered && !isGlobalCooldownActive && !isPositionLimitReached) {
-            actionGrade = 'S';
             // Determine direction if Neutral
             if (direction === 'NEUTRAL') {
-                // Heuristic: Strategy B with sweep usually implies reversal or trend continuation
-                // For simplicity, if we were neutral, we follow the probability derived from rawScore if available
                 direction = bullishProb >= 50 ? 'LONG' : 'SHORT';
             }
             
-            // DL Confirmation Check
-            const isDlConfirmed = (direction === 'LONG' && (deepLearningScore >= 0.55 || deepLearningScore === 0)) ||
-                                 (direction === 'SHORT' && ((deepLearningScore > 0 && deepLearningScore <= 0.45) || deepLearningScore === 0));
-
-            if (isDlConfirmed) {
-                kellyFraction = strategyA ? 0.20 : (strategyB ? 0.15 : 0.10);
-                reasoning_plain = `🎯 [S급-독립전략] 마이크로 구조 셋업 포착 (${strategyA ? 'A' : strategyB ? 'B' : 'C'}). (Kelly: ${(kellyFraction*100).toFixed(0)}%)`;
-            } else {
-                actionGrade = 'B';
-                kellyFraction = 0.05;
-                reasoning_plain = "⚠️ [독립전략] 변동성 포착되었으나 DL 확증 실패. 보수적 진입.";
-            }
-        } else if (direction === 'LONG') {
-            // DL 임계치 0.55 완화 적용
-            const isDlConfirmed = deepLearningScore >= 0.55 || deepLearningScore === 0;
-
-            if (currentPrice > ema200 && currentVol > MIN_ORDER_SIZE_FILTER && trendScore === 100 && rsi < 60) {
+            if (strategyS) {
                 actionGrade = 'S';
-                kellyFraction = 0.12; 
-                reasoning_plain = "🚀 [S급] 강력한 추세 매수 신호.";
-            } else if (trendScore >= 80 && currentVol > MIN_ORDER_SIZE_FILTER) {
+                kellyFraction = 0.20; // Used as indicator of conviction size, final logic restricts to 5% equity
+                reasoning_plain = "🚀 [S급] Liq Sweep + RSI Div + CVD Absorption 완벽한 겹침 (최우선 탐색).";
+            } else if (strategyA) {
                 actionGrade = 'A';
-                kellyFraction = 0.08;
-                reasoning_plain = "✅ [A급] 추세와 수급이 일치합니다.";
-            } else if (rsi < 30) {
-                actionGrade = 'B';
-                kellyFraction = 0.05;
-                reasoning_plain = "📉 [B급] 과매도 반등(Mean Reversion) 시도. 소액 진입.";
-            } else if (trendScore > 50) {
-                actionGrade = 'C';
-                kellyFraction = 0.03;
-                reasoning_plain = "⚠️ [C급] 상승 우위이나 모멘텀이 약합니다.";
-            } else {
-                reasoning_plain = "⛔ 조건 불충분. 자본을 지키십시오.";
-            }
-        } else if (direction === 'SHORT') {
-            const isDlConfirmed = (deepLearningScore > 0 && deepLearningScore <= 0.45) || deepLearningScore === 0;
-
-            if (currentPrice < ema200 && currentVol > MIN_ORDER_SIZE_FILTER && trendScore === 0 && rsi > 40) {
-                actionGrade = 'S';
-                kellyFraction = 0.12;
-                reasoning_plain = "📉 [S급] 강력한 매도 기회.";
-            } else if (trendScore <= 20 && currentVol > MIN_ORDER_SIZE_FILTER) {
-                actionGrade = 'A';
-                kellyFraction = 0.08;
-                reasoning_plain = "✅ [A급] 하락 추세와 매도세가 일치합니다.";
-            } else {
-                actionGrade = 'F';
-                reasoning_plain = "⛔ [필터탈락] 매도 수급 불충분.";
+                kellyFraction = 0.10;
+                reasoning_plain = "✅ [A급] S급 부재 중 단독 조건 충족 (Volume Cluster / Stacked Imbalance 지지).";
             }
         } else {
-            // Neutral
+            // Neutral / Blocked
             actionGrade = 'F';
-            reasoning_plain = "⚖️ [F급] 방향성 부재. 관망이 최고의 수익입니다.";
+            reasoning_plain = "⛔ [필터탈락] S/A급 마이크로 구조 셋업 부재. 데이트레이딩 기회가 아닙니다. 관망 유지.";
         }
 
         // --- [Global Governance Override] ---
@@ -2079,6 +2044,8 @@ export const AnalysisEngine = {
             zoomInPivotStrategy: extData?.zoomInPivotStrategy,
             cvdOiBreakoutConfirmed: extData?.cvdOiBreakoutConfirmed,
 
+            intradaySlOverride: undefined,
+
             // HP1 v115 The Apex Asymmetry
             isFrontRunOffsetApplied: false, // Calculated later in calculatePersonalRisk
             smcCurrentRetracementPct: extData?.smcCurrentRetracementPct,
@@ -2194,13 +2161,13 @@ export const AnalysisEngine = {
         let sl = 0, tp = 0;
         let tp1 = 0, tp2 = 0, tp3 = 0;
         if (signal.direction === 'LONG') {
-            sl = (signal as any).mtfSqueezeSlOverride ?? (currentPrice - slDist);
+            sl = signal.intradaySlOverride ?? (signal as any).mtfSqueezeSlOverride ?? (currentPrice - slDist);
             tp1 = currentPrice + tp1Dist;
             tp2 = currentPrice + tp2Dist;
             tp3 = currentPrice + tp3Dist;
             tp = tp3; 
         } else if (signal.direction === 'SHORT') {
-            sl = (signal as any).mtfSqueezeSlOverride ?? (currentPrice + slDist);
+            sl = signal.intradaySlOverride ?? (signal as any).mtfSqueezeSlOverride ?? (currentPrice + slDist);
             tp1 = currentPrice - tp1Dist;
             tp2 = currentPrice - tp2Dist;
             tp3 = currentPrice - tp3Dist;
@@ -2233,10 +2200,9 @@ export const AnalysisEngine = {
         kellyOptimalRatioBusseti = Math.max(0, Math.min(0.2, kellyOptimalRatioBusseti)); // Limit to 20% for safety
 
         // [Phase 9] Final Precision Leverage 
-        let leverage = isHighConviction ? 10 : 5;
+        let leverage = isHighConviction ? 20 : 10; // Red Potion v118: High Leverage on tight risk
         leverage = Math.floor(leverage * leverageMultiplier);
         if (leverage < 1) leverage = 1;
-        // (signal.actionGrade === 'A' ? 3 : 2); // Aggressive 5x for S-Grade
 
         if (mode === 'RED') {
             leverage = 1; // Training wheels
@@ -2276,6 +2242,7 @@ export const AnalysisEngine = {
 
         // HP1 v53.0: The Risk Oracle (Monte Carlo Risk of Ruin & RSI Divergence Sweep)
         if (signal.monteCarloRiskOfRuin !== undefined && maxRiskPct > 0) {
+            // Option to adjust fixed risk slightly? v118 prefers 5% strict, but keeping MC RoR reduction is good safety
             if (signal.monteCarloRiskOfRuin > 10) {
                 // If Risk of Ruin is > 10%, slash Kelly risk fraction by half
                 maxRiskPct *= 0.5;
@@ -2285,6 +2252,11 @@ export const AnalysisEngine = {
                 maxRiskPct *= 1.25;
                 riskOracleMsg += `[🛡️ RoR <2% + Div Sweep: Risk +25%] `;
             }
+        }
+        
+        // --- Red Potion v118: Override with strict 5% Risk fixed max limit if > 0 ---
+        if (maxRiskPct > 0) {
+            maxRiskPct = 0.05; // Force 5% Fixed Size
         }
 
         const maxLossUSDT = balance * maxRiskPct;
@@ -2329,6 +2301,17 @@ export const AnalysisEngine = {
         }
 
         const reason = `[${mode}] ${riskOracleMsg}${isHighConviction ? '🔥 S급 공격 진입: ' : ''}Max Risk ${(maxRiskPct * 100).toFixed(2)}% ($${maxLossUSDT.toFixed(1)}). SL ${slDist.toFixed(1)} points away. Set Margin to $${marginUSDT.toFixed(0)} with ${leverage}x Lev.`;
+
+        // --- Red Potion v118: 1:3 Minimum RRR Enforcer ---
+        const entrySimulationPrice = limitPrice || currentPrice;
+        const slDiffCheck = Math.abs(entrySimulationPrice - sl);
+        const tpDiffCheck = Math.abs(tp1 - entrySimulationPrice); 
+        const rrr = slDiffCheck > 0 ? (tpDiffCheck / slDiffCheck) : 0;
+        
+        // Allow F grade trades are already returned, so anything here must be an S/A entering 1:3 check
+        if (rrr < 3.0) {
+             return { margin: 0, leverage: 0, limitPrice: 0, sl: 0, tp1: 0, tp2: 0, tp3: 0, tp: 0, tp1Ratio: 0, tp2Ratio: 0, tp3Ratio: 0, reason: `🚫 [RRR Filter] 예상 손익비 1:${rrr.toFixed(1)} 로 1:3 기준 미달. 단독 진입 타점 자동 폐기.` };
+        }
 
         return { margin: marginUSDT, leverage, limitPrice, sl, tp1, tp2, tp3, tp, tp1Ratio, tp2Ratio, tp3Ratio, reason, isPyramidEligible, isFrontRunOffsetApplied };
     },
