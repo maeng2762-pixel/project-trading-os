@@ -120,7 +120,7 @@ export async function GET(request: Request) {
                     basePrice: basePrice,
                     baseStopLossPct: slPct, 
                     baseTargetPct: slPct * 2.5, 
-                    kellyRiskPct: (Number(result.kellyFraction) || 0.01) * 100,
+                    kellyRiskPct: Math.min((Number(result.kellyFraction) || 0.01) * 100, 5.0), // Cap at max 5% of seed
                     actionGrade: result.actionGrade,
                     reasoning_plain: result.reasoning_plain,
                     status: 'PENDING',
