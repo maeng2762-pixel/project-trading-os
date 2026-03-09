@@ -1,0 +1,16 @@
+name: LiveBot Market Scanner Cron
+
+on:
+  schedule:
+    # Runs every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Vercel Cron API Endpoint
+        run: |
+          curl -s -X GET "https://project-trading-os-gkgb.vercel.app/api/cron/scan" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
