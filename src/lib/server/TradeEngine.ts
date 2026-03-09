@@ -63,10 +63,22 @@ export class TradeEngine {
                 qty = minNotional / entryPrice;
             }
 
-            // Format to proper exchange precision
+            let leverage = Math.ceil((qty * entryPrice) / balance);
+            const MAX_LEVERAGE = 20;
+
+            // Step 1: Clamp Leverage & Qty
+            if (leverage > MAX_LEVERAGE) {
+                console.log(`[TradeEngine] ⚠️ Required leverage (${leverage}x) exceeds limit. Clamping to ${MAX_LEVERAGE}x.`);
+                leverage = MAX_LEVERAGE;
+                // Re-calculate the maximum allowed quantity under this leverage (leaving a 2% buffer for fees)
+                qty = (balance * leverage * 0.98) / entryPrice; 
+            }
+            if (leverage < 2) leverage = 2; // Binance minimum for a margin trade is usually 1, but 2 is safer for rounding
+
+            // Format to proper exchange precision AFTER clamping
             let formattedQty = Number(exchange.amountToPrecision(symbol, qty));
             
-            // If the formatting rounded it down below the 100 USDT limit, bump it by one BTC step increment
+            // Step 2: Ensure minimum notional value (100 USDT for BTC/USDT on Binance)
             if (formattedQty * entryPrice < 101) {
                console.log(`[TradeEngine] ⚠️ Precision truncation caused notional to drop below 100. Bumping qty up.`);
                formattedQty += 0.001; 
@@ -74,9 +86,9 @@ export class TradeEngine {
             }
             qty = formattedQty;
 
-            let leverage = Math.ceil((qty * entryPrice) / balance);
-            // Safety cap for test accounts
-            if (leverage > 20) leverage = 20;
+            // Re-check leverage in case we bumped it for the minimum notional
+            leverage = Math.max(leverage, Math.ceil((qty * entryPrice) / balance));
+            if (leverage > MAX_LEVERAGE) leverage = MAX_LEVERAGE;
 
             console.log(`[TradeEngine] Risk Profile: Qty=${qty}, Leverage=${leverage}x, Notional=${(qty * entryPrice).toFixed(2)} USDT`);
 
