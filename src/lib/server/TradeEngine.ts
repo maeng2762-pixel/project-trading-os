@@ -80,9 +80,9 @@ export class TradeEngine {
             
             // Step 2: Ensure minimum notional value (100 USDT for BTC/USDT on Binance)
             if (formattedQty * entryPrice < 101) {
-               console.log(`[TradeEngine] ⚠️ Precision truncation caused notional to drop below 100. Bumping qty up.`);
-               formattedQty += 0.001; 
-               formattedQty = Number(exchange.amountToPrecision(symbol, formattedQty));
+               console.log(`[TradeEngine] ⚠️ Precision truncation caused notional to drop below 101. Bumping qty up.`);
+               const requiredQtyRaw = 101.5 / entryPrice;
+               formattedQty = Number(exchange.amountToPrecision(symbol, requiredQtyRaw));
             }
             qty = formattedQty;
 
@@ -123,19 +123,25 @@ export class TradeEngine {
             // 5. Set TP/SL
             // Binance Futures allows conditional orders
             const tpSide = side === 'buy' ? 'sell' : 'buy';
-            const tpPrice = signal.basePrice * (1 + (signal.direction === 'LONG' ? signal.baseTargetPct/100 : -signal.baseTargetPct/100));
+            let tpPriceRaw = signal.basePrice * (1 + (signal.direction === 'LONG' ? signal.baseTargetPct/100 : -signal.baseTargetPct/100));
             
-            await exchange.createOrder(symbol, 'limit', tpSide, qty, tpPrice, { reduceOnly: true });
+            // Format to exact exchange precision to avoid "-1022 Signature not valid" from floating point serialization
+            const formattedTpPrice = Number(exchange.priceToPrecision(symbol, tpPriceRaw));
+            const formattedStopPrice = Number(exchange.priceToPrecision(symbol, stopLossPrice));
+            
+            console.log(`[TradeEngine] TP: ${formattedTpPrice}, SL: ${formattedStopPrice}`);
+            
+            await exchange.createOrder(symbol, 'limit', tpSide, qty, formattedTpPrice, { reduceOnly: true });
             
             // SL is usually better as Stop Market
             await exchange.createOrder(symbol, 'stop_market', tpSide, qty, undefined, { 
-                stopPrice: stopLossPrice, 
+                stopPrice: formattedStopPrice, 
                 reduceOnly: true 
             });
 
             console.log(`[TradeEngine] ✅ Execution Complete. Order ID: ${order.id}`);
 
-            return { success: true, orderId: order.id, details: { qty, leverage, entryPrice, stopLossPrice, tpPrice } };
+            return { success: true, orderId: order.id, details: { qty, leverage, entryPrice, stopLossPrice: formattedStopPrice, tpPrice: formattedTpPrice } };
 
         } catch (error: any) {
             console.error(`[TradeEngine] ❌ Execution Failed: ${error.message}`);
