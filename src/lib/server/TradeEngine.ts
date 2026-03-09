@@ -49,7 +49,7 @@ export class TradeEngine {
                 console.warn("[TradeEngine] Could not fetch real-time balance, using cached value.");
             }
 
-            const symbol = 'BTC/USDT';
+            const symbol = signal.symbol || 'BTC/USDT';
             const riskPct = signal.kellyRiskPct || 3.5;
             const entryPrice = signal.basePrice;
             const stopLossPrice = signal.basePrice * (1 + (signal.direction === 'LONG' ? -signal.baseStopLossPct/100 : signal.baseStopLossPct/100));
