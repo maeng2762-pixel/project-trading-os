@@ -32,7 +32,7 @@ async function sendTelegramAlert(signalId: string, payload: any) {
     };
 
     try {
-        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -42,9 +42,15 @@ async function sendTelegramAlert(signalId: string, payload: any) {
                 reply_markup: keyboard
             })
         });
-        console.log(`[Telegram Cron] 📲 Alert sent for signal ${signalId}`);
+        const resJson = await res.json();
+        console.log(`[Telegram Cron] Response status: ${res.status}, json:`, resJson);
+        if (res.ok) {
+            console.log(`[Telegram Cron] 📲 Alert sent for signal ${signalId}`);
+        } else {
+            console.error(`[Telegram Cron] ❌ Failed to send alert:`, resJson);
+        }
     } catch (e) {
-        console.error("[Telegram Cron] ❌ Failed to send alert", e);
+        console.error("[Telegram Cron] ❌ Exception in fetch", e);
     }
 }
 

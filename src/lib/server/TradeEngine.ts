@@ -17,10 +17,16 @@ export class TradeEngine {
         try {
             // 1. Fetch Keys from Environment Variables (Vercel Style)
             const apiKey = process.env.BINANCE_API_KEY;
-            const apiSecret = process.env.BINANCE_API_SECRET;
+            let apiSecret = process.env.BINANCE_API_SECRET;
 
             if (!apiKey || !apiSecret) {
                 throw new Error('Binance API keys not found in environment variables (BINANCE_API_KEY/SECRET).');
+            }
+
+            // Vercel UI sometimes escapes newlines into literal '\n' characters.
+            // RSA private keys must contain real newline characters for the crypto library to parse them.
+            if (apiSecret.includes('\\n')) {
+                apiSecret = apiSecret.replace(/\\n/g, '\n');
             }
 
             // 2. Initialize Exchange
