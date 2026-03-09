@@ -1735,7 +1735,7 @@ export const AnalysisEngine = {
                  }
 
                  // 2. Depth Snapshot Big Limit Confirmation
-                 if (isCompressZone) {
+                 if (isCompressZone && extData.bigLimitOrderDetected !== undefined) {
                       if (extData.bigLimitOrderDetected !== direction) {
                            reasons.unshift(`🛑 [Depth Snapshot] 컴프레스 존 도달! But 지지/저항을 방어하는 거대 지정가 벽(Big Limit) 부재 -> 기관 컨펌 실패(Drop).`);
                            direction = 'NEUTRAL';
@@ -1971,7 +1971,7 @@ export const AnalysisEngine = {
         const strategySSS = false; 
         const strategyS = !!extData?.volumeClusterFirstTouch && !!extData?.microAbsorptionConfirmed1m;
         // [A-Grade] 단독 조건만 충족되어도 진입 허용 (하루 1~2회 매매 빈도 확보용)
-        const strategyA = !!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m || !!extData?.isIcebergAbsorptionDetected;
+        const strategyA = !!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m || !!extData?.isIcebergAbsorptionDetected || (isCompressZone && isUltraScore);
 
         const isOrStrategyTriggered = strategySSS || strategyS || strategyA;
 
