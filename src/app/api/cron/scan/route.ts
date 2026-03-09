@@ -101,7 +101,7 @@ export async function GET(request: Request) {
             
             console.log(`[LiveBot Cron] ${SYMBOL} Analysis complete. Result Grade: ${result.actionGrade || 'F'}`);
 
-            if (['SSS', 'S', 'A'].includes(result.actionGrade || 'F')) {
+            if (['SSS', 'S'].includes(result.actionGrade || 'F')) {
                 // Use 15m as base for closer market truth
                 const basePrice = ohlcv15m[ohlcv15m.length - 1][4] as number;
                 const atr = (result.atr as number) || (basePrice * 0.01);
