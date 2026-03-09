@@ -16,6 +16,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 const nextConfig: NextConfig = {
   // @ts-ignore - Next 16 Turbopack empty config
   turbopack: {},
+  serverExternalPackages: ['ccxt'],
   images: {
     unoptimized: true,
   },
