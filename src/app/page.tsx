@@ -480,20 +480,9 @@ export default function Home() {
                       {/* 1. The Brain: Intelligence Board (Top) */}
                       <div className="w-full flex flex-col items-center gap-6 mb-8">
                         <div className="w-full">
-                          <TodayPlaybook
-                            structuralAnalysis={{
-                              currentStructure: "박스 상단 저항 근접",
-                              volatility: "수축 → 확장 대기"
-                            }}
-                            timeframeBriefing={{
-                              fourHour: "상승 구조 유지 (Bullish MS)",
-                              oneHour: "다이버전스 발생 (Bearish Div)",
-                              fifteenMin: "과열 구간 (주의)"
-                            }}
-                            finalInstruction="눌림 매수만 허용 (추격 매수 금지)"
-                          />
+                          <TodayPlaybook analysis={analysis} />
                         </div>
-                        <MarketStatusTags structure="Higher Low 형성 중" volatility="수축 (안정)" overheating="단기 쿨다운" />
+                        <MarketStatusTags analysis={analysis} />
                       </div>
 
                       {/* 2. Tactical Scenarios & Auto Journal (Bottom Split) */}

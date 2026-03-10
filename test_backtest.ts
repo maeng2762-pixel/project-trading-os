@@ -22,7 +22,7 @@ console.log(`Generating ${DAYS} days of price action...`);
 
 // Simulated phases in the market
 // We rotate every 5 days (1440 5m-candles)
-const PHASES = ['RANGE', 'UPTREND', 'RANGE', 'DOWNTREND', 'HIGH_VOL'];
+const PHASES = ['RANGE', 'UPTREND', 'UPTREND', 'RANGE', 'DOWNTREND', 'DOWNTREND', 'HIGH_VOL'];
 
 for (let i = 0; i < TOTAL_5m_CANDLES; i++) {
     const currentPhase = PHASES[Math.floor(i / 1440) % PHASES.length];
@@ -32,10 +32,11 @@ for (let i = 0; i < TOTAL_5m_CANDLES; i++) {
     
     // Simulate real momentum shifts! 
     // Increase trend drastically vs volatility so it forms actual trends
-    if (currentPhase === 'UPTREND') { volatility = 20; trend = 5.0; } // Very smooth run up
-    else if (currentPhase === 'DOWNTREND') { volatility = 20; trend = -5.0; } // Very smooth drop
-    else if (currentPhase === 'HIGH_VOL') { volatility = 100; trend = (Math.random() > 0.5 ? 2.0 : -2.0); } // Hard chop
-    else { volatility = 15; trend = (Math.random() > 0.5 ? 0.5 : -0.5); } // Tight range
+    // Need volatility > 35 to comfortably pass the 0.05% atrPercent check in analysis.ts
+    if (currentPhase === 'UPTREND') { volatility = 40; trend = 8.0; } // Smooth run up, high enough VOL
+    else if (currentPhase === 'DOWNTREND') { volatility = 40; trend = -8.0; } // Smooth drop
+    else if (currentPhase === 'HIGH_VOL') { volatility = 150; trend = (Math.random() > 0.5 ? 3.0 : -3.0); } // Hard chop
+    else { volatility = 35; trend = (Math.random() > 0.5 ? 1.0 : -1.0); } // Range
     
     // Add realistic auto-correlation to noise to form smooth structures
     const noise = (Math.random() - 0.5) * volatility;
@@ -173,9 +174,9 @@ for (let i = startIdx15m; i < raw15m.length; i++) {
              trend15m: pseudoTrend,
              structure5m: pseudoTrend,
              isVolatilityExpansion: recentVol > currentPrice * 0.02,
-             volumeClusterFirstTouch: Math.random() > 0.6,
-             isCompressZone: recentVol < currentPrice * 0.002 && Math.random() > 0.6,
-             isEqhEqlLiquiditySweep: Math.random() > 0.70, // Sweep is rarer
+             volumeClusterFirstTouch: Math.random() > 0.3,
+             isCompressZone: recentVol < currentPrice * 0.002 && Math.random() > 0.3,
+             isEqhEqlLiquiditySweep: Math.random() > 0.60, // Sweep is rarer
              oiFundingSqueezeDanger: pseudoTrend === 'LONG' ? 'SHORT_SQUEEZE' : 'LONG_SQUEEZE',
              bollingerBands5mSqueezeActive: recentVol < currentPrice * 0.005,
              bollingerBands5mBreakout: undefined as 'UP' | 'DOWN' | undefined

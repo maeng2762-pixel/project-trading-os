@@ -71,7 +71,9 @@ export const SignalCard = ({ analysis }: SignalCardProps) => {
                     {analysis.actionGrade && (
                         <div className={`
                             flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-[0_0_15px_rgba(0,0,0,0.5)]
-                            ${analysis.actionGrade === 'S' ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400 animate-pulse' :
+                            ${analysis.actionGrade === 'SSS' ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' :
+                                analysis.actionGrade === 'S' ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400 animate-pulse' :
+                                analysis.actionGrade === 'A+' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]' :
                                 analysis.actionGrade === 'A' ? 'bg-green-500/20 border-green-500 text-green-400' :
                                     analysis.actionGrade === 'B' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' :
                                         'bg-zinc-800 border-zinc-700 text-zinc-500'}

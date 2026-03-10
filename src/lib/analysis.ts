@@ -23,7 +23,7 @@ export interface AnalysisResult {
     reasons: string[];
     explanation: string; // Detailed narrative
     reasoning_plain?: string; // One-line simple explanation (v3.0)
-    actionGrade?: 'SSS' | 'S' | 'A' | 'B' | 'C' | 'F'; // (v5.0 + v118-ULTRA)
+    actionGrade?: 'SSS' | 'S' | 'A+' | 'A' | 'B' | 'C' | 'F'; // (v5.0 + v118-ULTRA)
     riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
     atr: number;
     currentPrice?: number;
@@ -88,7 +88,7 @@ export interface AnalysisResult {
     // --- HP1 v105: The Final Assembly ---
     isWaeDeadZoneRejected?: boolean;
     isEqhEqlLiquiditySweep?: boolean;
-    marketRegime?: 'TREND' | 'BOX' | 'OVERHEATED' | 'EVENT_WAIT';
+    marketRegime?: 'TREND_UP' | 'TREND_DOWN' | 'RANGE' | 'HIGH_VOL' | 'LOW_VOL' | 'LIQ_HUNT';
 
 
 
@@ -1768,6 +1768,20 @@ export const AnalysisEngine = {
              }
         }
 
+        // --- [Red Potion v118-ULTRA: The Holy Grail Expansion] ---
+        const isVolatilityExpansion = !!extData?.isVolatilityExpansion;
+        const isSqueezeHunter = extData?.oiFundingSqueezeDanger === 'LONG_SQUEEZE' || extData?.oiFundingSqueezeDanger === 'SHORT_SQUEEZE';
+        const isUltraScore = (direction === 'LONG' && rawScore >= 60) || (direction === 'SHORT' && rawScore <= 40);
+
+        const strategySSS = false; 
+        const strategyS = !!extData?.volumeClusterFirstTouch && !!extData?.microAbsorptionConfirmed1m;
+        // [A+ Grade] 최상급 단타. (하루 2~3회 빈도) 
+        const strategyA_Plus = (!!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m) && isCompressZone;
+        // [A-Grade] 단독 조건만 충족되어도 진입 허용 (하루 1~2회 매매 빈도 확보용)
+        const strategyA = !!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m || !!extData?.isIcebergAbsorptionDetected || (isCompressZone && isUltraScore);
+
+        const isOrStrategyTriggered = strategySSS || strategyS || strategyA_Plus || strategyA;
+
         // --- Confluence Check Application ---
         if (direction === 'LONG' && allowedDirection === 'SHORT') {
             isConfluenceRejected = true;
@@ -1811,8 +1825,8 @@ export const AnalysisEngine = {
         if (Math.abs(rawScore - 50) > 30) rewardRatio += 3.0; // Explosive signal bonus
 
         // --- HP1 Target: Explosive R:R (Win Rate 40~50% / High ROI) ---
-        const slAtrMult = 0.8; // Tight SL (Adjusted to hit 40%+ winrate)
-        const tpAtrMult = slAtrMult * rewardRatio * 2.5; // Massive TP extensions
+        const slAtrMult = 1.3; // Breathing room for trades (Hit 40%+ winrate)
+        const tpAtrMult = slAtrMult * Math.max(rewardRatio, 3.5) * 3.0; // Massive TP extensions (min 13x ATR)
 
         if (direction === 'LONG') {
             const nearestSwingLow = Math.min(...lows.slice(-20, -1));
@@ -1961,19 +1975,7 @@ export const AnalysisEngine = {
 
         // 8. Plain English Translator (HP1 v3.0) & Action Grade (v5.0)
         let reasoning_plain = "";
-        let actionGrade: 'SSS' | 'S' | 'A' | 'B' | 'C' | 'F' = 'F';
-
-        // --- [Red Potion v118-ULTRA: The Holy Grail Expansion] ---
-        const isVolatilityExpansion = !!extData?.isVolatilityExpansion;
-        const isSqueezeHunter = extData?.oiFundingSqueezeDanger === 'LONG_SQUEEZE' || extData?.oiFundingSqueezeDanger === 'SHORT_SQUEEZE';
-        const isUltraScore = (direction === 'LONG' && rawScore >= 60) || (direction === 'SHORT' && rawScore <= 40);
-
-        const strategySSS = false; 
-        const strategyS = !!extData?.volumeClusterFirstTouch && !!extData?.microAbsorptionConfirmed1m;
-        // [A-Grade] 단독 조건만 충족되어도 진입 허용 (하루 1~2회 매매 빈도 확보용)
-        const strategyA = !!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m || !!extData?.isIcebergAbsorptionDetected || (isCompressZone && isUltraScore);
-
-        const isOrStrategyTriggered = strategySSS || strategyS || strategyA;
+        let actionGrade: 'SSS' | 'S' | 'A+' | 'A' | 'B' | 'C' | 'F' = 'F';
 
         // 1. 📊 Daily Bias Lock (Volume Profile Bias Filter)
         const profileBias = extData?.volumeProfileShape; // 'P-Shape' (Bullish), 'b-Shape' (Bearish)
@@ -2024,10 +2026,14 @@ export const AnalysisEngine = {
                 actionGrade = 'S';
                 kellyFraction = 0.20; 
                 reasoning_plain = "🚀 [S급] Liq Sweep + RSI Div + CVD Absorption 완벽한 겹침 (최우선 탐색).";
+            } else if (strategyA_Plus) {
+                actionGrade = 'A+';
+                kellyFraction = 0.15;
+                reasoning_plain = "✨ [A+급] Volume Cluster와 압축 횡보(Compress Zone)가 일치하는 최상급 단타 자리.";
             } else {
                 actionGrade = 'A';
                 kellyFraction = 0.10;
-                reasoning_plain = "✅ [A급] S급 부재 중 단독 조건 충족 (Volume Cluster / Stacked Imbalance 지지).";
+                reasoning_plain = "✅ [A급] 단일 셋업(Volume Cluster/Absortion) 충족. 정밀 매매 집행.";
             }
         } else {
             // Neutral / Blocked

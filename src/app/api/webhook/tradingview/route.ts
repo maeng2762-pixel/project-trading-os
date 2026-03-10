@@ -252,6 +252,26 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: true, status: "Out of Session Kill-Zone (Standard Signal)" });
         }
 
+        // --- 🔥 [Short-Bombing Custom] 대횡보장(RANGE) 관망 핑 ---
+        if (analysis.actionGrade === 'F' && (analysis.marketRegime === 'RANGE' || analysis.marketRegime === 'LOW_VOL')) {
+             if (telegramBotToken && telegramChatId) {
+                 const chatIds = telegramChatId.split(',');
+                 const pingMsg = `🛡️ <b>[관망 브리핑] 모멘텀 데드존 진입</b>\n\n` +
+                                 `현재 시장은 방향성이 상실된 박스권 횡보장입니다.\n` +
+                                 `휩소(톱니바퀴)로 인한 손실 방지를 위해 모든 타점 서치를 일시 중지하고 시드를 보존합니다.\n` +
+                                 `새로운 구조 브레이크 스윕 대기 중 💤`;
+                 chatIds.forEach(async (cid) => {
+                     await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({ chat_id: cid.trim(), text: pingMsg, parse_mode: 'HTML' })
+                     }).catch(e => console.error("Range Ping error:", e));
+                 });
+             }
+             console.log("🔒 횡보장 관망 핑 텔레그램 발송 완료");
+             return NextResponse.json({ success: true, status: "Range Market Ping Sent" });
+        }
+
         // Filter out bad signals
         if (analysis.direction === 'NEUTRAL' || !isGradeAccepted) {
              console.log(`Trades Filter Auto-Calibration: 노이즈 필터링됨 (현재 빈도 ${extData.tradesIn24h}회/24h -> 요구 등급: ${dynamicMinGrade.join('/')})`);
