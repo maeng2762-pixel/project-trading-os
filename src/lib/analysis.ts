@@ -1808,11 +1808,11 @@ export const AnalysisEngine = {
         let recommendedTP = 0;
         let rewardRatio = 2.0;
 
-        if (Math.abs(rawScore - 50) > 30) rewardRatio += 1.0; // Strong signal bonus
+        if (Math.abs(rawScore - 50) > 30) rewardRatio += 3.0; // Explosive signal bonus
 
-        // --- HP1 Day Trading Refinement ---
-        const slAtrMult = 1.2; // tighter SL for Day Trades
-        const tpAtrMult = slAtrMult * rewardRatio;
+        // --- HP1 Target: Explosive R:R (Win Rate 40~50% / High ROI) ---
+        const slAtrMult = 0.8; // Tight SL (Adjusted to hit 40%+ winrate)
+        const tpAtrMult = slAtrMult * rewardRatio * 2.5; // Massive TP extensions
 
         if (direction === 'LONG') {
             const nearestSwingLow = Math.min(...lows.slice(-20, -1));

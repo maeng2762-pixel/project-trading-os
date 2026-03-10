@@ -173,9 +173,9 @@ for (let i = startIdx15m; i < raw15m.length; i++) {
              trend15m: pseudoTrend,
              structure5m: pseudoTrend,
              isVolatilityExpansion: recentVol > currentPrice * 0.02,
-             volumeClusterFirstTouch: Math.random() > 0.8,
-             isCompressZone: recentVol < currentPrice * 0.002 && Math.random() > 0.8,
-             isEqhEqlLiquiditySweep: Math.random() > 0.90, // Sweep is rarer
+             volumeClusterFirstTouch: Math.random() > 0.6,
+             isCompressZone: recentVol < currentPrice * 0.002 && Math.random() > 0.6,
+             isEqhEqlLiquiditySweep: Math.random() > 0.70, // Sweep is rarer
              oiFundingSqueezeDanger: pseudoTrend === 'LONG' ? 'SHORT_SQUEEZE' : 'LONG_SQUEEZE',
              bollingerBands5mSqueezeActive: recentVol < currentPrice * 0.005,
              bollingerBands5mBreakout: undefined as 'UP' | 'DOWN' | undefined
@@ -190,15 +190,15 @@ for (let i = startIdx15m; i < raw15m.length; i++) {
         const kelly = result.kellyFraction || 0;
         gradeStats[result.actionGrade || 'NONE'] = (gradeStats[result.actionGrade || 'NONE'] || 0) + 1;
         if (result.actionGrade && ['SSS', 'S', 'A+', 'A'].includes(result.actionGrade) && kelly > 0) {
-            const lev = result.recommendedLeverage || 1;
-            // Cap sizing to available capital and Kelly (with safe limit)
-            const safeFraction = Math.min(kelly, 0.2); // max 20% equity risk per trade
+            const lev = result.recommendedLeverage ? result.recommendedLeverage * 2 : 5; // Double leverage for explosion
+            // Increase cap to 60% for explosive compounding 
+            const safeFraction = Math.min(kelly * 2, 0.6); 
             const sizeUsdt = capital * safeFraction * lev; 
             const sizeCoins = sizeUsdt / currentPrice;
             
             const entryPrice = currentPrice;
-            const sl = result.recommendedSL || (result.direction === 'LONG' ? entryPrice * 0.99 : entryPrice * 1.01);
-            const tp = result.recommendedTP || (result.direction === 'LONG' ? entryPrice * 1.02 : entryPrice * 0.98);
+            const sl = result.recommendedSL || (result.direction === 'LONG' ? entryPrice * 0.995 : entryPrice * 1.005);
+            const tp = result.recommendedTP || (result.direction === 'LONG' ? entryPrice * 1.05 : entryPrice * 0.95);
 
             position = {
                 type: result.direction,
