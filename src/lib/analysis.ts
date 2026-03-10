@@ -2024,7 +2024,7 @@ export const AnalysisEngine = {
                 actionGrade = 'S';
                 kellyFraction = 0.20; 
                 reasoning_plain = "🚀 [S급] Liq Sweep + RSI Div + CVD Absorption 완벽한 겹침 (최우선 탐색).";
-            } else if (strategyA) {
+            } else {
                 actionGrade = 'A';
                 kellyFraction = 0.10;
                 reasoning_plain = "✅ [A급] S급 부재 중 단독 조건 충족 (Volume Cluster / Stacked Imbalance 지지).";
