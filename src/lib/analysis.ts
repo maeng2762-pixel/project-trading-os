@@ -1775,10 +1775,10 @@ export const AnalysisEngine = {
 
         const strategySSS = false; 
         const strategyS = !!extData?.volumeClusterFirstTouch && !!extData?.microAbsorptionConfirmed1m;
-        // [A+ Grade] 최상급 단타. (하루 2~3회 빈도) 
-        const strategyA_Plus = (!!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m) && isCompressZone;
+        // [A+ Grade] 최상급 단타. (하루 2~3회 빈도) - 컴프레스 존과 압도적 방향성 결합
+        const strategyA_Plus = (!!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m) || (isCompressZone && isUltraScore);
         // [A-Grade] 단독 조건만 충족되어도 진입 허용 (하루 1~2회 매매 빈도 확보용)
-        const strategyA = !!extData?.volumeClusterFirstTouch || !!extData?.microAbsorptionConfirmed1m || !!extData?.isIcebergAbsorptionDetected || (isCompressZone && isUltraScore);
+        const strategyA = !!extData?.isIcebergAbsorptionDetected || isCompressZone || (rawScore >= 80 || rawScore <= 20);
 
         const isOrStrategyTriggered = strategySSS || strategyS || strategyA_Plus || strategyA;
 
@@ -2029,7 +2029,7 @@ export const AnalysisEngine = {
             } else if (strategyA_Plus) {
                 actionGrade = 'A+';
                 kellyFraction = 0.15;
-                reasoning_plain = "✨ [A+급] Volume Cluster와 압축 횡보(Compress Zone)가 일치하는 최상급 단타 자리.";
+                reasoning_plain = "✨ [A+급] 다중 지지/저항(Compress Zone)과 압도적 방향성이 돌파되는 최상급 단타 자리.";
             } else {
                 actionGrade = 'A';
                 kellyFraction = 0.10;
